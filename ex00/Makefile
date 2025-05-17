@@ -6,7 +6,7 @@
 #    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/17 12:13:34 by vberdugo          #+#    #+#              #
-#    Updated: 2025/05/17 12:16:48 by vberdugo         ###   ########.fr        #
+#    Updated: 2025/05/17 23:19:01 by victor           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,34 +17,34 @@ NAME     := megaphone
 SRCS     := megaphone.cpp
 OBJS     := $(SRCS:.cpp=.o)
 
-# Define all the compiling flags.
+# Compiler and flags.
 CXX      := g++
 CXXFLAGS := -Wall -Werror -Wextra -std=c++98
+LDFLAGS  := -fsanitize=address,undefined,leak -g
 
-# Compile and create everything.
+# Default target.
 all: $(NAME)
 
-# Compile the program with the objects.
+# Link objects into executable, including sanitizer flags.
 $(NAME): $(OBJS)
-	@$(CXX) $(OBJS) -o $@
+	@$(CXX) $(OBJS) $(LDFLAGS) -o $@ && echo "[INFO] $(NAME) built successfully!"
 
-# This won't run if the source files don't exist or are not modified.
+# Compile sources.
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Rule to remove all the object files.
+# Clean object files.
 clean:
 	@rm -f $(OBJS)
 	@echo "[INFO] Objects removed!"
 
-# Rule to remove everything that has been created by the makefile.
+# Remove all build artifacts.
 fclean: clean
 	@rm -f $(NAME)
 	@echo "[INFO] $(NAME) removed!"
 
-# Rule to re-make everything.
-re:     fclean all
+# Rebuild everything.
+re: fclean all
 
-# Makes sure that gnu make will still run even if files called
-# clean / fclean / all and re already exist in the directory
-.PHONY: all clean fclean format re
+# Prevent conflicts with files named clean, all, etc.
+.PHONY: all clean fclean re
