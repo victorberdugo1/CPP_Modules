@@ -6,14 +6,32 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/17 12:14:00 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/05/17 23:11:36 by victor           ###   ########.fr       */
+/*   Updated: 2025/05/21 15:33:20 by victor           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <iostream>
-using namespace std;
-int main()
+#include <cctype>
+
+int main(int argc, char* argv[])
 {
-cout << "Enjoy yourself with C++!" << endl;
-return 0;
+	int i;
+	int j;
+
+	if (argc == 1)
+		std::cout << "* LOUD AND UNBEARABLE FEEDBACK NOISE *";
+	i = 1;
+	while (i < argc)
+	{
+		j = 0;
+		while(argv[i][j])
+		{
+			argv[i][j] = std::toupper (argv[i][j]);
+			j++;
+		}
+		std::cout << argv[i];
+		i++;
+	}
+	std::cout << std::endl;
+	return 0;
 }
