@@ -1,13 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   phonebook.cpp                                      :+:      :+:    :+:   */
+/*   PhoneBook.class.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: victor <marvin@42.fr>                      +#+  +:+       +#+        */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/22 09:30:42 by victor            #+#    #+#             */
-/*   Updated: 2025/05/22 09:30:45 by victor           ###   ########.fr       */
+/*   Created: 2025/06/02 11:29:18 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/06/02 12:04:09 by vberdugo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#ifndef PHONEBOOK_CLASS_HPP
+# define PHONEBOOK_CLASS_HPP
 
+class PhoneBook {
+	public:
+		PhoneBook(void);
+		~PhoneBook(void);
+};
+
+#endif

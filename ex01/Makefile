@@ -6,7 +6,7 @@
 #    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/17 12:13:34 by vberdugo          #+#    #+#              #
-#    Updated: 2025/05/22 09:17:08 by victor           ###   ########.fr        #
+#    Updated: 2025/06/02 11:59:37 by vberdugo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@
 NAME     := PhoneBook
 
 # Sources and objects.
-SRCS     := phonebook.cpp
+SRCS     := crappyPhonebook.cpp PhoneBook.class.cpp
 OBJS     := $(SRCS:.cpp=.o)
 
 # Compiler and flags.
