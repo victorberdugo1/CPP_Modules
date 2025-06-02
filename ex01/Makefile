@@ -6,15 +6,15 @@
 #    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/17 12:13:34 by vberdugo          #+#    #+#              #
-#    Updated: 2025/06/02 11:59:37 by vberdugo         ###   ########.fr        #
+#    Updated: 2025/06/02 12:11:30 by vberdugo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 # Name of the program.
-NAME     := PhoneBook
+NAME     := crappyPhonebook
 
 # Sources and objects.
-SRCS     := crappyPhonebook.cpp PhoneBook.class.cpp
+SRCS     := crappyPhonebook.cpp PhoneBook.class.cpp Contact.class.cpp
 OBJS     := $(SRCS:.cpp=.o)
 
 # Compiler and flags.
