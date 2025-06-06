@@ -6,45 +6,59 @@
 #    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/05/17 12:13:34 by vberdugo          #+#    #+#              #
-#    Updated: 2025/06/02 12:11:30 by vberdugo         ###   ########.fr        #
+#    Updated: 2025/06/03 13:42:36 by vberdugo         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-# Name of the program.
-NAME     := crappyPhonebook
+NAME       := crappyPhonebook
 
-# Sources and objects.
-SRCS     := crappyPhonebook.cpp PhoneBook.class.cpp Contact.class.cpp
-OBJS     := $(SRCS:.cpp=.o)
+# Directories
+OBJ_DIR    := obj
+SRC_DIR    := .
 
-# Compiler and flags.
-CXX      := g++
-CXXFLAGS := -Wall -Werror -Wextra -std=c++98
-LDFLAGS  := -fsanitize=address,undefined,leak -g
+# Source files
+SRCS       := $(SRC_DIR)/crappyPhonebook.cpp \
+              $(SRC_DIR)/PhoneBook.class.cpp \
+              $(SRC_DIR)/Contact.class.cpp
 
-# Default target.
+# Object and dependency files (in obj/)
+OBJS       := $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+DEPS       := $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.d)
+
+# Compiler and flags
+CC         := g++
+CFLAGS     := -Wall -Wextra -Werror -std=c++98 -MMD -MP
+LDFLAGS    := -fsanitize=address,undefined,leak -g
+
+# Default target
 all: $(NAME)
 
-# Link objects into executable.
+# Link object files into executable
 $(NAME): $(OBJS)
-	@$(CXX) $(OBJS) $(LDFLAGS) -o $@ && echo "[INFO] $(NAME) built successfully!"
+	@$(CC) $(OBJS) $(LDFLAGS) -o $@ && echo "[INFO] $(NAME) built successfully!"
 
-# Compile sources.
-%.o: %.cpp
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
+# Compile .cpp into .o and generate .d dependency file
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	@$(CC) $(CFLAGS) -c $< -o $@ && echo "[INFO] Compiled: $<"
 
-# Clean object files.
+# Include dependency files (auto-regenerate on header changes)
+-include $(DEPS)
+
+# Create object directory if it doesn't exist
+$(OBJ_DIR):
+	@mkdir -p $(OBJ_DIR)
+
+# Remove object and dependency files
 clean:
-	@rm -f $(OBJS)
-	@echo "[INFO] Objects removed!"
+	@rm -rf $(OBJ_DIR)
+	@echo "[INFO] Object and dependency files removed!"
 
-# Remove all build artifacts.
+# Remove everything including executable
 fclean: clean
 	@rm -f $(NAME)
 	@echo "[INFO] $(NAME) removed!"
 
-# Rebuild everything.
+# Full rebuild
 re: fclean all
 
-# Prevent conflicts with files named clean, all, etc.
 .PHONY: all clean fclean re

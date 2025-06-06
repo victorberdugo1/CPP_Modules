@@ -6,7 +6,7 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/02 12:07:37 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/06/02 12:08:31 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/06/06 12:02:08 by vberdugo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,20 @@
 Contact::Contact(void) {
 
 	std::cout << "Constructor Call" << std::endl;
+	Contact::_index += 1;
 	return ;
 }
 
 Contact::~Contact(void) {
 
 	std::cout << "Destructor Call" << std::endl;
+	Contact::_index -= 1;
 	return ;
 }
+
+int	Contact::get_index( void ) {
+
+	return Contact::_index;
+}
+
+int	Contact::_index = 0;
