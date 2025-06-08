@@ -6,14 +6,14 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/02 12:09:02 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/06/07 14:07:01 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/06/08 14:24:11 by victor           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONTACT_CLASS_HPP
 # define CONTACT_CLASS_HPP
 
-#include <string>
+#include <iostream>
 
 class Contact {
 	public:
@@ -41,4 +41,3 @@ class Contact {
 };
 
 #endif
-

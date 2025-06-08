@@ -6,15 +6,11 @@
 /*   By: victor <marvin@42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/22 09:30:42 by victor            #+#    #+#             */
-/*   Updated: 2025/06/07 13:44:56 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/06/08 14:24:51 by victor           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "PhoneBook.class.hpp"
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <sstream>
 
 PhoneBook::PhoneBook() : _count(0) {}
 PhoneBook::~PhoneBook() {}

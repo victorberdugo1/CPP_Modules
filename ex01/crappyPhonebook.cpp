@@ -6,13 +6,10 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/02 11:51:39 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/06/07 13:38:49 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/06/08 14:24:28 by victor           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <iostream>
-#include <string>
-#include <algorithm>
 #include "PhoneBook.class.hpp"
 #include "Contact.class.hpp"
 
@@ -25,7 +22,6 @@ int main() {
         if (!std::getline(std::cin, command))
             break;
 
-        std::transform(command.begin(), command.end(), command.begin(), ::toupper);
 
         if (command == "ADD")
             phonebook.addContact();
