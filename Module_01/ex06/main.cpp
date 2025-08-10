@@ -6,13 +6,13 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/10 12:11:16 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/08/10 12:26:33 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/08/10 12:54:53 by vberdugo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Harl.hpp"
 
-int	karen_translate(char *argv)
+int	harl_translate(char *argv)
 {
 	std::string	levels[4] = {"DEBUG", "INFO", "WARNING", "ERROR"};
 
@@ -22,18 +22,18 @@ int	karen_translate(char *argv)
 	return (-1);
 }
 
-void	karen_switch(char *argv, Harl & k)
+void	harl_switch(char *argv, Harl & h)
 {
-	switch (karen_translate(argv))
+	switch (harl_translate(argv))
 	{
 		case 0:
-			k.complain("DEBUG");
+			h.complain("DEBUG");
 		case 1:
-			k.complain("INFO");
+			h.complain("INFO");
 		case 2:
-			k.complain("WARNING");
+			h.complain("WARNING");
 		case 3:
-			k.complain("ERROR");
+			h.complain("ERROR");
 			break ;
 		default:
 			std::cout << "[ Probably complaining about insignificant problems ]" << std::endl;
@@ -42,11 +42,11 @@ void	karen_switch(char *argv, Harl & k)
 
 int	main(int argc, char **argv)
 {
-	Harl k;
+	Harl h;
 
 	if (argc != 2)
 		std::cout << "[ Probably complaining about insignificant problems ]" << std::endl;
 	else
-		karen_switch(argv[1], k);
+		harl_switch(argv[1], h);
 	return (0);
 }

@@ -6,7 +6,7 @@
 /*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/10 12:10:12 by vberdugo          #+#    #+#             */
-/*   Updated: 2025/08/10 12:10:14 by vberdugo         ###   ########.fr       */
+/*   Updated: 2025/08/10 12:53:16 by vberdugo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 
 int	main(void)
 {
-	Harl k;
+	Harl h;
 
-	k.complain("DEBUG");
-	k.complain("INFO");
-	k.complain("WARNING");
-	k.complain("ERROR");
+	h.complain("DEBUG");
+	h.complain("INFO");
+	h.complain("WARNING");
+	h.complain("ERROR");
 	return (0);
 }
