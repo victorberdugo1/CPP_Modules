@@ -3,48 +3,48 @@
 
 Dog::Dog(void): Animal("Dog")
 {
-	this->_brain = new Brain();
+	this->brain_ = new Brain();
 	std::cout << "Dog created with default constructor." << std::endl;
 }
 
 Dog::Dog(Dog const &copy): Animal(copy)
 {
-	this->_brain = new Brain(*copy._brain);
+	this->brain_ = new Brain(*copy.brain_);
 	std::cout << "Dog copied." << std::endl;
 }
 
 Dog::~Dog(void)
 {
-	delete this->_brain;
+	delete this->brain_;
 	std::cout << "Dog destroyed." << std::endl;
 }
 
 Dog const	&Dog::operator=(Dog const &copy)
 {
 	Animal::operator=(copy);
-	*this->_brain = *copy._brain;
+	*this->brain_ = *copy.brain_;
 	std::cout << "Assignment operator for Dog called." << std::endl;
 	return (*this);
 }
 
 std::string const	&Dog::getType(void) const
 {
-	return (this->_type);
+	return (this->type_);
 }
 
 void	Dog::setType(const std::string &type)
 {
-	this->_type = type;
+	this->type_ = type;
 }
 
 Brain &Dog::getBrain(void) const
 {
-	return (*this->_brain);
+	return (*this->brain_);
 }
 
 void	Dog::setBrain(Brain const &brain)
 {
-	*this->_brain = brain;
+	*this->brain_ = brain;
 }
 
 void	Dog::makeSound(void) const
@@ -54,39 +54,39 @@ void	Dog::makeSound(void) const
 
 Cat::Cat(void): Animal("Cat")
 {
-	this->_brain = new Brain();
+	this->brain_ = new Brain();
 	std::cout << "Cat created with default constructor." << std::endl;
 }
 
 Cat::Cat(Cat const &copy): Animal(copy)
 {
 	*this = copy;
-	this->_brain = new Brain(*copy._brain);
+	this->brain_ = new Brain(*copy.brain_);
 	std::cout << "Cat copied." << std::endl;
 }
 
 Cat::~Cat(void)
 {
-	delete this->_brain;
+	delete this->brain_;
 	std::cout << "Cat destroyed." << std::endl;
 }
 
 Cat const	&Cat::operator=(Cat const &copy)
 {
 	Animal::operator=(copy);
-	//*this->_brain = *copy._brain;
+	//*this->brain_ = *copy.brain_;
 	std::cout << "Assignment operator for Cat called." << std::endl;
 	return (*this);
 }
 
 std::string const	&Cat::getType(void) const
 {
-	return (this->_type);
+	return (this->type_);
 }
 
 void	Cat::setType(const std::string &type)
 {
-	this->_type = type;
+	this->type_ = type;
 }
 
 void	Cat::makeSound(void) const
@@ -96,10 +96,10 @@ void	Cat::makeSound(void) const
 
 Brain &Cat::getBrain(void) const
 {
-	return (*this->_brain);
+	return (*this->brain_);
 }
 
 void	Cat::setBrain(Brain const &brain)
 {
-	*this->_brain = brain;
+	*this->brain_ = brain;
 }

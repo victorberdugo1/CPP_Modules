@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Animal.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/03 15:14:38 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/03 15:14:41 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
@@ -6,7 +17,7 @@
 class Animal
 {
 	protected:
-		std::string	_type;
+		std::string	type_;
 	public:
 		/* Constructors & Destructors */
 		Animal(void);

@@ -10,7 +10,7 @@ class Animal
 		Animal(void);
 		Animal(std::string const &type);
 		Animal(Animal const &copy);
-		std::string	_type;
+		std::string	type_;
 	public:
 		/* Constructors & Destructors */
 		virtual ~Animal(void);

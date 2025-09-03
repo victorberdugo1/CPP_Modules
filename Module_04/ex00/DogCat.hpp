@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   DogCat.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/03 15:18:03 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/03 15:18:23 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
@@ -6,7 +17,7 @@
 class Dog: public Animal
 {
 	private:
-		std::string	_type;
+		std::string	type_;
 	public:
 		/* Constructors & Destructors */
 		Dog(void);
@@ -28,7 +39,7 @@ class Dog: public Animal
 class Cat: public Animal
 {
 	private:
-		std::string	_type;
+		std::string	type_;
 	public:
 		/* Constructors & Destructors */
 		Cat(void);

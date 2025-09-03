@@ -6,7 +6,7 @@
 class Dog: public Animal
 {
 	private:
-		Brain		*_brain;
+		Brain		*brain_;
 	public:
 		/* Constructors & Destructors */
 		Dog(void);
@@ -29,7 +29,7 @@ class Dog: public Animal
 class Cat: public Animal
 {
 	private:
-		Brain		*_brain;
+		Brain		*brain_;
 	public:
 		/* Constructors & Destructors */
 		Cat(void);

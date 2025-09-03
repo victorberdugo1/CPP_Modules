@@ -2,16 +2,16 @@
 #include "Animal.hpp"
 #include "DogCat.hpp"
 
-#define N_ANIMALS 10
+#define NANIMALS_ 10
 
 int main(void)
 {
 	{
-		const Animal *lotsOfAnimals[N_ANIMALS];
+		const Animal *lotsOfAnimals[NANIMALS_];
 
-		for (int i = 0; i < N_ANIMALS; i++)
+		for (int i = 0; i < NANIMALS_; i++)
 		{
-			if (i < N_ANIMALS / 2)
+			if (i < NANIMALS_ / 2)
 				lotsOfAnimals[i] = new Dog();
 			else
 				lotsOfAnimals[i] = new Cat();
@@ -27,7 +27,7 @@ int main(void)
 		std::cout << lotsOfAnimals[0]->getBrain().getIdea(0) << std::endl;
 		std::cout << lotsOfAnimals[0]->getBrain().getIdea(1) << std::endl;
 		std::cout << "-------------------------------------\n";
-		for (int i = 0; i < N_ANIMALS; i++)
+		for (int i = 0; i < NANIMALS_; i++)
 			delete lotsOfAnimals[i];
 	}
 	std::cout << "-------------------------------------\n";
