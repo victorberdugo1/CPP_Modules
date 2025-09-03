@@ -1,19 +1,30 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   DiamondTrap.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/03 13:17:54 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/03 13:39:44 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "DiamondTrap.hpp"
 
 DiamondTrap::DiamondTrap(void)
 {
-	ClapTrap::_name = "default_clap_name";
+	ClapTrap::name_ = "default_clap_name";
 	std::cout << "DiamondTrap " << this->_name << " created with default constructor." << std::endl;
 }
 
 DiamondTrap::DiamondTrap(std::string const &name): ClapTrap(name + "_clap_name")
 {
 	this->_name = name;
-	this->_hp = FragTrap::_hp;
-	this->_energy_points = ScavTrap::_energy_points;
-	this->_damage = FragTrap::_damage;
-	std::cout << "DiamondTrap " << this->_name << " created." << std::endl;
+	this->hp_ = FragTrap::hp_;
+	this->energyPoints_ = ScavTrap::energyPoints_;
+	this->damage_ = FragTrap::damage_;
+	std::cout << "DiamondTrap " << this->name_ << " created." << std::endl;
 }
 
 DiamondTrap::~DiamondTrap(void)
@@ -35,12 +46,12 @@ DiamondTrap	&DiamondTrap::operator=(DiamondTrap const &copy)
 
 void	DiamondTrap::whoAmI(void)
 {
-	if (this->_hp <= 0)
+	if (this->hp_ <= 0)
 		std::cout << "Cannot run whoAmI because: DiamondTrap " << this->_name << " is dead." << std::endl;
 	else
 	{
 		std::cout << "DiamondTrap name: " << this->_name << "." << std::endl;
-		std::cout << "ClapTrap name: " << ClapTrap::_name << "." << std::endl;
+		std::cout << "ClapTrap name: " << ClapTrap::name_ << "." << std::endl;
 	}
 }
 

@@ -3,9 +3,9 @@
 
 # define FRAGTRAP_HPP
 
-# include "ScavTrap.hpp"
+# include "ClapTrap.hpp"
 
-class FragTrap: public virtual ClapTrap
+class FragTrap: virtual public ClapTrap
 {
 	public:
 		/* Constructors & Destructors */

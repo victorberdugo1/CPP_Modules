@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.cpp                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/03 12:25:32 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/03 12:25:35 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "ScavTrap.hpp"
 
@@ -24,7 +35,7 @@ void	bob_rundown(void)
 {
 	ScavTrap	bob("Bob");
 
-	while (bob.get_hp())
+	while (bob.getHp())
 	{
 		bob.takeDamage(20);
 		bob.beRepaired(10);

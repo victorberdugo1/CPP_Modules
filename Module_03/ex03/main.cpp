@@ -26,7 +26,7 @@ void	bob_rundown(void)
 {
 	DiamondTrap	bob("Bob");
 
-	while (bob.get_hp())
+	while (bob.getHp())
 	{
 		bob.takeDamage(20);
 		bob.beRepaired(10);

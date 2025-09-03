@@ -1,7 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   DiamondTrap.hpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/03 13:18:02 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/03 13:39:31 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
 # include "FragTrap.hpp"
+# include "ScavTrap.hpp"
 
 class DiamondTrap: public ScavTrap, public FragTrap
 {
@@ -22,6 +34,6 @@ class DiamondTrap: public ScavTrap, public FragTrap
 		void	attack(std::string const &target);
 
 		/* Getters & Setters */
-		std::string const	&get_name(void);
-		void				set_name(std::string const &name);
+		std::string const	&getName(void);
+		void				setName(std::string const &name);
 };

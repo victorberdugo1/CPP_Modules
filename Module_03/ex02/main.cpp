@@ -24,7 +24,7 @@ void	bob_rundown(void)
 {
 	FragTrap	bob("Bob");
 
-	while (bob.get_hp())
+	while (bob.getHp())
 	{
 		bob.takeDamage(20);
 		bob.beRepaired(10);
