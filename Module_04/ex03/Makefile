@@ -1,3 +1,14 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2025/09/05 13:25:22 by vberdugo          #+#    #+#              #
+#    Updated: 2025/09/05 13:25:24 by vberdugo         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
 
 SRC = main.cpp AMateria.cpp Ice.cpp Cure.cpp ICharacter.cpp Character.cpp	\
 	  IMateriaSource.cpp MateriaSource.cpp

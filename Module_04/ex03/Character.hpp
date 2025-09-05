@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Character.hpp                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:22:45 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:22:47 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
@@ -6,8 +17,8 @@
 class Character: public ICharacter
 {
 	private:
-		std::string	_name;
-		AMateria	*_inventory[4];
+		std::string	name_;
+		AMateria	*inventory_[4];
 	public:
 		/* Constructors & Destructors */
 		Character(void);

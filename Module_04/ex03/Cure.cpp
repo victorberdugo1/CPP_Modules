@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Cure.cpp                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:23:04 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:23:08 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "Cure.hpp"
 
@@ -18,7 +29,7 @@ Cure::Cure(Cure const &copy): AMateria(copy)
 
 Cure const	&Cure::operator=(const Cure &copy)
 {
-	this->_type = copy._type;
+	this->type_ = copy.type_;
 	return (*this);
 }
 

@@ -1,12 +1,23 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Character.cpp                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:21:19 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:21:24 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "Character.hpp"
 
-Character::Character(void): _name("default"), _inventory()
+Character::Character(void): name_("default"), inventory_()
 {
 	std::cout << "Character created with default constructor" << std::endl;
 }
 
-Character::Character(std::string const &name): _name(name), _inventory()
+Character::Character(std::string const &name): name_(name), inventory_()
 {
 	std::cout << "Character created" << std::endl;
 }
@@ -15,26 +26,26 @@ Character::~Character(void)
 {
 	for (int i = 0; i < 4; i++)
 	{
-		if (this->_inventory[i])
-			delete this->_inventory[i];
+		if (this->inventory_[i])
+			delete this->inventory_[i];
 	}
 	std::cout << "Character destroyed" << std::endl;
 }
 
-Character::Character(Character const &copy): ICharacter(copy), _inventory()
+Character::Character(Character const &copy): ICharacter(copy), inventory_()
 {
-	this->_name = copy._name;
+	this->name_ = copy.name_;
 	for (int i = 0; i < 4; i++)
 	{
-		if (copy._inventory[i])
-			this->_inventory[i] = copy._inventory[i];
+		if (copy.inventory_[i])
+			this->inventory_[i] = copy.inventory_[i];
 	}
 	std::cout << "Character copied" << std::endl;
 }
 
 Character const	&Character::operator=(const Character &copy)
 {
-	this->_name = copy._name;
+	this->name_ = copy.name_;
 	return (*this);
 }
 
@@ -42,18 +53,18 @@ void	Character::equip(AMateria *m)
 {
 	for (int i = 0; i < 4; i++)
 	{
-		if (m && this->_inventory[i] == NULL)
+		if (m && this->inventory_[i] == NULL)
 		{
 			if (this->inInventory(m))
-				this->_inventory[i] = m->clone();
+				this->inventory_[i] = m->clone();
 			else
-				this->_inventory[i] = m;
-			std::cout << "Materia " << this->_inventory[i]->getType() << " equipped to " << this->_name << "'s inventory at index " << i << std::endl;
+				this->inventory_[i] = m;
+			std::cout << "Materia " << this->inventory_[i]->getType() << " equipped to " << this->name_ << "'s inventory at index " << i << std::endl;
 			return ;
 		}
 	}
 	if (m)
-		std::cout << "Cannot equip materia, " << this->_name << "'s inventory is full!" << std::endl;
+		std::cout << "Cannot equip materia, " << this->name_ << "'s inventory is full!" << std::endl;
 	else
 		std::cout << "Cannot equip invalid materia" << std::endl;
 	if (!this->inInventory(m))
@@ -62,10 +73,10 @@ void	Character::equip(AMateria *m)
 
 void	Character::unequip(int idx)
 {
-	if (idx >= 0 && idx < 4 && this->_inventory[idx])
+	if (idx >= 0 && idx < 4 && this->inventory_[idx])
 	{
-		std::cout << "Unequipped " << this->_inventory[idx]->getType() << " from " << this->_name << "'s inventory at index " << idx << std::endl;
-		this->_inventory[idx] = NULL;
+		std::cout << "Unequipped " << this->inventory_[idx]->getType() << " from " << this->name_ << "'s inventory at index " << idx << std::endl;
+		this->inventory_[idx] = NULL;
 	}
 	else if (idx < 0 || idx >= 4)
 		std::cout << "Cannot unequip materia, invalid index " << idx << std::endl;
@@ -75,8 +86,8 @@ void	Character::unequip(int idx)
 
 void	Character::use(int idx, ICharacter &target)
 {
-	if (idx >= 0 && idx < 4 && this->_inventory[idx])
-		this->_inventory[idx]->use(target);
+	if (idx >= 0 && idx < 4 && this->inventory_[idx])
+		this->inventory_[idx]->use(target);
 	else if (idx < 0 || idx >= 4)
 		std::cout << "Cannot use materia, invalid index " << idx << std::endl;
 	else
@@ -87,7 +98,7 @@ int Character::inInventory(AMateria *m)
 {
 	for (int i = 0; i < 4; i++)
 	{
-		if (this->_inventory[i] == m)
+		if (this->inventory_[i] == m)
 			return (1);
 	}
 	return (0);
@@ -95,10 +106,10 @@ int Character::inInventory(AMateria *m)
 
 std::string const	&Character::getName(void) const
 {
-	return (this->_name);
+	return (this->name_);
 }
 
 void	Character::setName(std::string const &name)
 {
-	this->_name = name;
+	this->name_ = name;
 }

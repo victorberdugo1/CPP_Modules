@@ -1,7 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   AMateria.cpp                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:21:00 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:21:02 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "AMateria.hpp"
 
-AMateria::AMateria(std::string const &type): _type(type)
+AMateria::AMateria(std::string const &type): type_(type)
 {
 	std::cout << "AMateria object created" << std::endl;
 }
@@ -19,12 +30,12 @@ AMateria::~AMateria(void)
 
 AMateria const	&AMateria::operator=(AMateria const &copy)
 {
-	this->_type = copy._type;
+	this->type_ = copy.type_;
 	std::cout << "AMateria Assignment Operator Called" << std::endl;
 	return (*this);
 }
 
 std::string const	&AMateria::getType(void) const
 {
-	return (this->_type);
+	return (this->type_);
 }

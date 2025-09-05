@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   MateriaSource.hpp                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:25:40 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:25:46 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
@@ -6,7 +17,7 @@
 class MateriaSource: public IMateriaSource
 {
 	private:
-		AMateria	*_learnInventory[4];
+		AMateria	*learnInventory_[4];
 	public:
 		/* Constructors & Destructors */
 		MateriaSource(void);

@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   AMateria.hpp                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/05 13:21:10 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/09/05 13:21:13 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #pragma once
 
@@ -8,7 +19,7 @@ class ICharacter;
 class AMateria
 {
 	protected:
-		std::string	_type;
+		std::string	type_;
 
 		/* Constructors & Destructors */
 		AMateria(std::string const &type);
