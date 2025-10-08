@@ -1,7 +1,6 @@
-#define _POSIX_C_SOURCE 200809L
 #include "life.h"
-#include <stdio.h>  /* para putchar */
-#include <stdlib.h> /* atoi, malloc, calloc, free */
+#include <stdio.h>
+#include <stdlib.h>
 
 /* Inicializa juego y reserva board; devuelve 0 ok, -1 error. */
 int init_game(t_game* game, char* argv[])
