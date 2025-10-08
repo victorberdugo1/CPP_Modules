@@ -3,76 +3,72 @@
 
 #include <iostream>
 
-class vect2
-{
+// vect2: vector 2D entero (lectura cómoda en móvil)
+class vect2 {
 private:
 	int x;
 	int y;
 
 public:
-	/* constructores / asignador / destructor */
+	// constructores / asignador / destructor
 	vect2() : x(0), y(0) {}
-	vect2(int num1, int num2) : x(num1), y(num2) {}
-	vect2(const vect2& source) : x(source.x), y(source.y) {}
-	vect2& operator=(const vect2& source) {
-		if (this != &source) { x = source.x; y = source.y; }
+	vect2(int nx, int ny) : x(nx), y(ny) {}
+	vect2(const vect2& s) : x(s.x), y(s.y) {}
+	vect2& operator=(const vect2& s) {
+		if (this != &s) {
+			x = s.x;
+			y = s.y;
+		}
 		return *this;
 	}
 	~vect2() {}
 
-	/* acceso por índice (0 -> x, 1 -> y). Sin comprobación de índices. */
-	int operator[](int index) const { return (index == 0) ? x : y; }
-	int& operator[](int index)       { return (index == 0) ? x : y; }
+	// acceso por índice: 0->x, 1->y (sin comprobación)
+	int operator[](int i) const { return (i == 0) ? x : y; }
+	int& operator[](int i)       { return (i == 0) ? x : y; }
 
-	/* unario - */
+	// unario -
 	vect2 operator-() const { return vect2(-x, -y); }
 
-	/* multiplicación por escalar (miembro) */
-	vect2 operator*(int num) const { return vect2(x * num, y * num); }
+	// escalar (miembro)
+	vect2 operator*(int n) const { return vect2(x * n, y * n); }
+	vect2 operator+(int n) const { return vect2(x + n, y + n); }
+	vect2 operator-(int n) const { return vect2(x - n, y - n); }
 
-	/* suma/resta por escalar (miembro) */
-	vect2 operator+(int num) const { return vect2(x + num, y + num); }
-	vect2 operator-(int num) const { return vect2(x - num, y - num); }
+	vect2& operator*=(int n) { x *= n; y *= n; return *this; }
+	vect2& operator+=(int n) { x += n; y += n; return *this; }
+	vect2& operator-=(int n) { x -= n; y -= n; return *this; }
 
-	/* operadores compuestos con escalar */
-	vect2& operator*=(int num) { x *= num; y *= num; return *this; }
-	vect2& operator+=(int num) { x += num; y += num; return *this; }
-	vect2& operator-=(int num) { x -= num; y -= num; return *this; }
+	// component-wise con vect2
+	vect2& operator+=(const vect2& o) { x += o.x; y += o.y; return *this; }
+	vect2& operator-=(const vect2& o) { x -= o.x; y -= o.y; return *this; }
+	vect2& operator*=(const vect2& o) { x *= o.x; y *= o.y; return *this; }
 
-	/* operadores compuestos con vect2 (component-wise) */
-	vect2& operator+=(const vect2& obj) { x += obj.x; y += obj.y; return *this; }
-	vect2& operator-=(const vect2& obj) { x -= obj.x; y -= obj.y; return *this; }
-	vect2& operator*=(const vect2& obj) { x *= obj.x; y *= obj.y; return *this; }
+	vect2 operator+(const vect2& o) const { return vect2(x + o.x, y + o.y); }
+	vect2 operator-(const vect2& o) const { return vect2(x - o.x, y - o.y); }
+	vect2 operator*(const vect2& o) const { return vect2(x * o.x, y * o.y); }
 
-	/* operaciones binarias (component-wise) */
-	vect2 operator+(const vect2& obj) const { return vect2(x + obj.x, y + obj.y); }
-	vect2 operator-(const vect2& obj) const { return vect2(x - obj.x, y - obj.y); }
-	vect2 operator*(const vect2& obj) const { return vect2(x * obj.x, y * obj.y); }
+	// inc / dec
+	vect2& operator++()    { ++x; ++y; return *this; }
+	vect2  operator++(int) { vect2 tmp(*this); ++(*this); return tmp; }
+	vect2& operator--()    { --x; --y; return *this; }
+	vect2  operator--(int) { vect2 tmp(*this); --(*this); return tmp; }
 
-	/* incrementos y decrementos */
-	vect2& operator++()    { ++x; ++y; return *this; }      // pre
-	vect2  operator++(int) { vect2 tmp(*this); ++(*this); return tmp; } // post
-	vect2& operator--()    { --x; --y; return *this; }      // pre
-	vect2  operator--(int) { vect2 tmp(*this); --(*this); return tmp; } // post
-
-	/* comparaciones */
-	bool operator==(const vect2& obj) const { return x == obj.x && y == obj.y; }
-	bool operator!=(const vect2& obj) const { return !(*this == obj); }
+	// comparaciones
+	bool operator==(const vect2& o) const { return x == o.x && y == o.y; }
+	bool operator!=(const vect2& o) const { return !(*this == o); }
 };
 
-/* operadores libres: escalar a la izquierda (necesarios para 2 * v y 2 + v) */
-inline vect2 operator*(int num, const vect2& obj) {
-	return obj * num; // utiliza el miembro
-}
-inline vect2 operator+(int num, const vect2& obj) {
-	return vect2(obj[0] + num, obj[1] + num);
+// operadores libres: escalar a la izquierda
+inline vect2 operator*(int n, const vect2& v) { return v * n; }
+inline vect2 operator+(int n, const vect2& v) {
+	return vect2(v[0] + n, v[1] + n);
 }
 
-/* operador de salida */
-inline std::ostream& operator<<(std::ostream& os, const vect2& obj) {
-	os << "{" << obj[0] << ", " << obj[1] << "}";
+// salida
+inline std::ostream& operator<<(std::ostream& os, const vect2& v) {
+	os << "{" << v[0] << ", " << v[1] << "}";
 	return os;
 }
 
 #endif // VECT2_HPP
-
