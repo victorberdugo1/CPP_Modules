@@ -24,10 +24,9 @@ public:
 		: x(source.x), y(source.y) {}
 	
 	// Asignación
-	vect2& operator=(const vect2& source) {
-		if (this != &source) { 
-			x = source.x; 
-			y = source.y; 
+	vect2& operator=(const vect2& src) {
+		if (this != &src) { 
+			x = src.x; y = src.y; 
 		}
 		return *this;
 	}
@@ -75,22 +74,19 @@ public:
 	
 	// v *= 3
 	vect2& operator*=(int num) { 
-		x *= num; 
-		y *= num; 
+		x *= num; y *= num; 
 		return *this; 
 	}
 	
 	// v += 5
 	vect2& operator+=(int num) { 
-		x += num; 
-		y += num; 
+		x += num; y += num; 
 		return *this; 
 	}
 	
 	// v -= 5
 	vect2& operator-=(int num) { 
-		x -= num; 
-		y -= num; 
+		x -= num; y -= num; 
 		return *this; 
 	}
 	
@@ -98,22 +94,19 @@ public:
 	
 	// v1 += v2
 	vect2& operator+=(const vect2& o) { 
-		x += o.x; 
-		y += o.y; 
+		x += o.x; y += o.y; 
 		return *this; 
 	}
 	
 	// v1 -= v2
 	vect2& operator-=(const vect2& o) { 
-		x -= o.x; 
-		y -= o.y; 
+		x -= o.x; y -= o.y; 
 		return *this; 
 	}
 	
 	// v1 *= v2
 	vect2& operator*=(const vect2& o) { 
-		x *= o.x; 
-		y *= o.y; 
+		x *= o.x; y *= o.y; 
 		return *this; 
 	}
 	
@@ -138,27 +131,23 @@ public:
 	
 	// ++v
 	vect2& operator++() { 
-		++x; ++y; 
-		return *this; 
+		++x; ++y; return *this; 
 	}
 	
 	// v++
 	vect2 operator++(int) { 
-		vect2 tmp(*this); 
-		++(*this); 
+		vect2 tmp(*this); ++(*this); 
 		return tmp; 
 	}
 	
 	// --v
 	vect2& operator--() { 
-		--x; --y; 
-		return *this; 
+		--x; --y; return *this; 
 	}
 	
 	// v--
 	vect2 operator--(int) { 
-		vect2 tmp(*this); 
-		--(*this); 
+		vect2 tmp(*this); --(*this); 
 		return tmp; 
 	}
 	
