@@ -56,36 +56,42 @@ public:
 	/* Con escalar */
 	
 	// Mult: v * 3
-	vect2 operator*(int num) const { 
+	vect2 operator*(int num) const
+	{ 
 		return vect2(x*num, y*num); 
 	}
 	
 	// Suma: v + 5
-	vect2 operator+(int num) const { 
+	vect2 operator+(int num) const
+	{ 
 		return vect2(x+num, y+num); 
 	}
 	
 	// Resta: v - 5
-	vect2 operator-(int num) const { 
+	vect2 operator-(int num) const
+	{ 
 		return vect2(x-num, y-num); 
 	}
 	
 	/* Compuestos escalar */
 	
 	// v *= 3
-	vect2& operator*=(int num) { 
+	vect2& operator*=(int num)
+	{ 
 		x *= num; y *= num; 
 		return *this; 
 	}
 	
 	// v += 5
-	vect2& operator+=(int num) { 
+	vect2& operator+=(int num)
+	{ 
 		x += num; y += num; 
 		return *this; 
 	}
 	
 	// v -= 5
-	vect2& operator-=(int num) { 
+	vect2& operator-=(int num)
+	{ 
 		x -= num; y -= num; 
 		return *this; 
 	}
@@ -93,19 +99,22 @@ public:
 	/* Compuestos vectorial */
 	
 	// v1 += v2
-	vect2& operator+=(const vect2& o) { 
+	vect2& operator+=(const vect2& o)
+	{ 
 		x += o.x; y += o.y; 
 		return *this; 
 	}
 	
 	// v1 -= v2
-	vect2& operator-=(const vect2& o) { 
+	vect2& operator-=(const vect2& o)
+	{ 
 		x -= o.x; y -= o.y; 
 		return *this; 
 	}
 	
 	// v1 *= v2
-	vect2& operator*=(const vect2& o) { 
+	vect2& operator*=(const vect2& o)
+	{ 
 		x *= o.x; y *= o.y; 
 		return *this; 
 	}
@@ -113,17 +122,20 @@ public:
 	/* Binarias */
 	
 	// v1 + v2
-	vect2 operator+(const vect2& o) const { 
+	vect2 operator+(const vect2& o) const
+	{ 
 		return vect2(x+o.x, y+o.y); 
 	}
 	
 	// v1 - v2
-	vect2 operator-(const vect2& o) const { 
+	vect2 operator-(const vect2& o) const
+	{ 
 		return vect2(x-o.x, y-o.y); 
 	}
 	
 	// v1 * v2
-	vect2 operator*(const vect2& o) const { 
+	vect2 operator*(const vect2& o) const
+	{ 
 		return vect2(x*o.x, y*o.y); 
 	}
 	
@@ -154,12 +166,14 @@ public:
 	/* Comparaciones */
 	
 	// v1 == v2
-	bool operator==(const vect2& o) const { 
+	bool operator==(const vect2& o) const
+	{ 
 		return x==o.x && y==o.y; 
 	}
 	
 	// v1 != v2
-	bool operator!=(const vect2& o) const { 
+	bool operator!=(const vect2& o) const
+	{ 
 		return !(*this == o); 
 	}
 };
