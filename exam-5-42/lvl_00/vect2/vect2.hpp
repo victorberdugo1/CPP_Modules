@@ -2,30 +2,29 @@
 #define VECT2_HPP
 #include <iostream>
 
-// Clase vector 2D con coordenadas enteras
+// Vector 2D con enteros
 class vect2
 {
 private:
-	int x; // Componente X
-	int y; // Componente Y
+	int x; // X
+	int y; // Y
 
 public:
 	/* Constructores */
 	
-	// Constructor por defecto: (0, 0)
+	// Por defecto: (0, 0)
 	vect2() : x(0), y(0) {}
 	
-	// Constructor con parámetros
+	// Con parámetros
 	vect2(int num1, int num2) 
 		: x(num1), y(num2) {}
 	
-	// Constructor de copia
+	// Copia
 	vect2(const vect2& source) 
 		: x(source.x), y(source.y) {}
 	
-	// Operador de asignación
+	// Asignación
 	vect2& operator=(const vect2& source) {
-		// Evita auto-asignación
 		if (this != &source) { 
 			x = source.x; 
 			y = source.y; 
@@ -36,129 +35,127 @@ public:
 	// Destructor
 	~vect2() {}
 	
-	/* Acceso por índice */
+	/* Acceso [] */
 	
-	// Lectura: v[0] = x, v[1] = y
+	// Lectura v[0]=x, v[1]=y
 	int operator[](int index) const { 
 		return (index == 0) ? x : y; 
 	}
 	
-	// Escritura: v[0] = 5
+	// Escritura v[0]=5
 	int& operator[](int index) { 
 		return (index == 0) ? x : y; 
 	}
 	
-	/* Operador unario */
+	/* Unario */
 	
-	// Negación: -v invierte el signo
+	// Negación -v
 	vect2 operator-() const { 
 		return vect2(-x, -y); 
 	}
 	
-	/* Operaciones con escalar */
+	/* Con escalar */
 	
-	// Multiplicación: v * 3
+	// Mult: v * 3
 	vect2 operator*(int num) const { 
-		return vect2(x * num, y * num); 
+		return vect2(x*num, y*num); 
 	}
 	
 	// Suma: v + 5
 	vect2 operator+(int num) const { 
-		return vect2(x + num, y + num); 
+		return vect2(x+num, y+num); 
 	}
 	
 	// Resta: v - 5
 	vect2 operator-(int num) const { 
-		return vect2(x - num, y - num); 
+		return vect2(x-num, y-num); 
 	}
 	
-	/* Operadores compuestos (escalar) */
+	/* Compuestos escalar */
 	
-	// Multiplica y asigna: v *= 3
+	// v *= 3
 	vect2& operator*=(int num) { 
 		x *= num; 
 		y *= num; 
 		return *this; 
 	}
 	
-	// Suma y asigna: v += 5
+	// v += 5
 	vect2& operator+=(int num) { 
 		x += num; 
 		y += num; 
 		return *this; 
 	}
 	
-	// Resta y asigna: v -= 5
+	// v -= 5
 	vect2& operator-=(int num) { 
 		x -= num; 
 		y -= num; 
 		return *this; 
 	}
 	
-	/* Operadores compuestos (vectorial) */
+	/* Compuestos vectorial */
 	
-	// Suma vectores: v1 += v2
-	vect2& operator+=(const vect2& obj) { 
-		x += obj.x; 
-		y += obj.y; 
+	// v1 += v2
+	vect2& operator+=(const vect2& o) { 
+		x += o.x; 
+		y += o.y; 
 		return *this; 
 	}
 	
-	// Resta vectores: v1 -= v2
-	vect2& operator-=(const vect2& obj) { 
-		x -= obj.x; 
-		y -= obj.y; 
+	// v1 -= v2
+	vect2& operator-=(const vect2& o) { 
+		x -= o.x; 
+		y -= o.y; 
 		return *this; 
 	}
 	
-	// Multiplica componentes: v1 *= v2
-	vect2& operator*=(const vect2& obj) { 
-		x *= obj.x; 
-		y *= obj.y; 
+	// v1 *= v2
+	vect2& operator*=(const vect2& o) { 
+		x *= o.x; 
+		y *= o.y; 
 		return *this; 
 	}
 	
-	/* Operaciones binarias */
+	/* Binarias */
 	
-	// Suma: v1 + v2
-	vect2 operator+(const vect2& obj) const { 
-		return vect2(x + obj.x, y + obj.y); 
+	// v1 + v2
+	vect2 operator+(const vect2& o) const { 
+		return vect2(x+o.x, y+o.y); 
 	}
 	
-	// Resta: v1 - v2
-	vect2 operator-(const vect2& obj) const { 
-		return vect2(x - obj.x, y - obj.y); 
+	// v1 - v2
+	vect2 operator-(const vect2& o) const { 
+		return vect2(x-o.x, y-o.y); 
 	}
 	
-	// Multiplica componentes: v1 * v2
-	vect2 operator*(const vect2& obj) const { 
-		return vect2(x * obj.x, y * obj.y); 
+	// v1 * v2
+	vect2 operator*(const vect2& o) const { 
+		return vect2(x*o.x, y*o.y); 
 	}
 	
-	/* Incrementos y decrementos */
+	/* Inc/Dec */
 	
-	// Pre-incremento: ++v
+	// ++v
 	vect2& operator++() { 
-		++x; 
-		++y; 
+		++x; ++y; 
 		return *this; 
 	}
 	
-	// Post-incremento: v++
+	// v++
 	vect2 operator++(int) { 
 		vect2 tmp(*this); 
 		++(*this); 
 		return tmp; 
 	}
 	
-	// Pre-decremento: --v
+	// --v
 	vect2& operator--() { 
-		--x; 
-		--y; 
+		--x; --y; 
 		return *this; 
 	}
 	
-	// Post-decremento: v--
+	// v--
 	vect2 operator--(int) { 
 		vect2 tmp(*this); 
 		--(*this); 
@@ -167,48 +164,36 @@ public:
 	
 	/* Comparaciones */
 	
-	// Igualdad: v1 == v2
-	bool operator==(const vect2& obj) const { 
-		return x == obj.x && y == obj.y; 
+	// v1 == v2
+	bool operator==(const vect2& o) const { 
+		return x==o.x && y==o.y; 
 	}
 	
-	// Desigualdad: v1 != v2
-	bool operator!=(const vect2& obj) const { 
-		return !(*this == obj); 
+	// v1 != v2
+	bool operator!=(const vect2& o) const { 
+		return !(*this == o); 
 	}
 };
 
-/* Operadores libres (fuera de clase) */
+/* Libres */
 
-// Multiplicación conmutativa: 3 * v
-inline vect2 operator*(
-	int num, 
-	const vect2& obj
-) {
-	return obj * num;
+// 3 * v
+inline vect2 operator*(int n, 
+	const vect2& o) {
+	return o * n;
 }
 
-// Suma conmutativa: 5 + v
-inline vect2 operator+(
-	int num, 
-	const vect2& obj
-) {
-	return vect2(
-		obj[0] + num, 
-		obj[1] + num
-	);
+// 5 + v
+inline vect2 operator+(int n, 
+	const vect2& o) {
+	return vect2(o[0]+n, o[1]+n);
 }
 
-// Operador de salida: cout << v
+// cout << v
 inline std::ostream& operator<<(
-	std::ostream& os, 
-	const vect2& obj
-) {
-	os << "{" 
-	   << obj[0] 
-	   << ", " 
-	   << obj[1] 
-	   << "}";
+	std::ostream& os, const vect2& o) {
+	os << "{" << o[0] << ", " 
+	   << o[1] << "}";
 	return os;
 }
 
