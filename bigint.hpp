@@ -47,8 +47,19 @@ public:
 	bigint& operator++() { return *this += bigint(1); }
 	bigint operator++(int) { bigint tmp(*this); ++*this; return tmp; }
 	//E
+	
+	bool operator==(const bigint& o) const {
+return _val == o._val;
+	}
+	bool operator!=(const bigint& o) const {
+return !(*this == o);
+	}
+	bool operator<(const bigint& o) const {
+if(_val.size() != o._val.size() )
+	return _val.size() < o.val.size();
+return _val < o._val;
+	}
 
-	bool operator 
 	friend std::ostream& operator<<(std::ostream& os, const bigint& n) {
 return os << n._val;
 	}
