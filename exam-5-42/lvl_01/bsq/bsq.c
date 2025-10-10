@@ -1,25 +1,8 @@
+/* bsq.c */
+#include "bsq.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-
-typedef struct s_elements {
-	int n_lines;
-	char empty;
-	char obstacle;
-	char full;
-} t_elements;
-
-typedef struct s_map {
-	char **grid;
-	int width;
-	int height;
-} t_map;
-
-typedef struct s_square {
-	int size;
-	int i;
-	int j;
-} t_square;
 
 /* parsea la cabecera esperando formato con espacios: "N e o f" */
 int loadElements(FILE *file, t_elements *elements)
