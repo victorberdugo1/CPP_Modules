@@ -54,6 +54,10 @@ class vect2 {
 		vect2 operator*(int n) const {
 			return vect2(x * n, y * n);
 		}
+		friend inline vect2 operator*(int n, const vect2& v) {
+			return v * n;
+		}
+
 		bool operator==(const vect2& o) const {
 			return x == o.x && y == o.y;
 		}
@@ -81,11 +85,6 @@ class vect2 {
 			return tmp;
 		}
 };
-
-/* Operadores libres CON INLINE para evitar múltiples definiciones */
-inline vect2 operator*(int n, const vect2& v) {
-	return v * n;
-}
 
 inline std::ostream& operator<<(std::ostream& os, const vect2& v) {
 	return os << "{" << v[0] << ", " << v[1] << "}";
