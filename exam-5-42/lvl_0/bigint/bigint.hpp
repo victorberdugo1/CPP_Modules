@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-
+#include <climits>
 class bigint {
 public:
 	std::string _val;
@@ -54,39 +54,33 @@ public:
 		if (shift >= _val.size()) return bigint(0);
 		return bigint(_val.substr(0, _val.size() - shift));
 	}
-	friend std::ostream& operator<<(std::ostream& os, const bigint& n) {
-		return os << n._val;
-	}
-
-	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-	// COMPARISONS: Define < and ==, the rest are negations/inversions
-	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-	// Base: compares the string values
 	bool operator==(const bigint& o) const {
 		return _val == o._val;
 	}
+	
+	friend std::ostream& operator<<(std::ostream& os, const bigint& n) {
+		return os << n._val;
+	}
+	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+	// COMPARISONS: Define < and ==, the rest are negations/inversions
+	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 	// != is simply the negation of ==
 	bool operator!=(const bigint& o) const {
 		return !(*this == o);
 	}
-
 	// > swaps the operands: a > b is the same as b < a
 	bool operator>(const bigint& o) const {
 		return o < *this;
 	}
-
 	// <= is the negation of >: if it's not greater, it's less or equal
 	bool operator<=(const bigint& o) const {
 		return !(*this > o);
 	}
-
 	// >= is the negation of <: if it's not less, it's greater or equal
 	bool operator>=(const bigint& o) const {
 		return !(*this < o);
 	}
-
 
 	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	// Pattern *this = *this [operator] value
@@ -96,36 +90,29 @@ public:
 	bigint& operator+=(const bigint& rhs) {
 		return *this = *this + rhs;
 	}
-
 	// a <<= n  →  a = a << n
 	bigint& operator<<=(int shift) {
 		return *this = *this << shift;
 	}
-
 	//  >>= n  →  a = a >> n
 	bigint& operator>>=(int shift) {
 		return *this = *this >> shift;
 	}
-
 	// Versions with bigint: convert to uint and use the int version
 	bigint& operator<<=(const bigint& shift) {
 		return *this = *this << shift;
 	}
-
 	bigint& operator>>=(const bigint& shift) {
 		return *this = *this >> shift;
 	}
 
-
 	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	// INCREMENT: ++a returns the new value, a++ returns the old value
 	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 	// Pre-increment (++a): increments and returns the new value
 	bigint& operator++() {
 		return *this += bigint(1);
 	}
-
 	// Post-increment (a++): returns the old value, then increments
 	// The (int) is fictitious, only to differentiate
 	bigint operator++(int) {
@@ -134,16 +121,13 @@ public:
 		return tmp;         // Return the old value
 	}
 
-
 	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 	// OVERLOADS: Convert bigint to int and reuse existing operators
 	// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 	// Allows using bigint as a shift amount
 	bigint operator<<(const bigint& shift) const {
 		return *this << shift.toUInt();
 	}
-
 	bigint operator>>(const bigint& shift) const {
 		return *this >> shift.toUInt();
 	}
