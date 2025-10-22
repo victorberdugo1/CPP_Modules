@@ -107,12 +107,17 @@ public:
     }
     
     bigint operator>>(const bigint& shift) const {
-        int sh = (int)std::stoull(shift._val);
-        if (sh <= 0 || _val == "0") return *this;
-        if ((size_t)sh >= _val.size()) return bigint(0);
-        return bigint(_val.substr(0, _val.size() - sh));
+    int sh;
+    try {
+        sh = std::stoi(shift._val);
+    } catch (...) {
+        return bigint(0);
     }
-    
+    if (sh <= 0 || _val == "0") return *this;
+    if ((size_t)sh >= _val.size()) return bigint(0);
+    return bigint(_val.substr(0, _val.size() - sh));
+    }
+
     bigint& operator>>=(const bigint& shift) {
         return *this = *this >> shift;
     }
