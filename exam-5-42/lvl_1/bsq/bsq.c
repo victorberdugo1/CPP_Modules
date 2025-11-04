@@ -2,100 +2,108 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-    int lines, width;
-    char empty, obstacle, full, **map;
-} Map;
+int min3(int a, int b, int c) { return a < b ? (a < c ? a : c) : (b < c ? b : c); }
 
-int min3(int a, int b, int c) {
-    return a < b ? (a < c ? a : c) : (b < c ? b : c);
-}
+int process_stream(FILE *f) {
+    int rows;
+    char empty, obs, full;    
+    // Leer cabecera
+    if (fscanf(f, "%d %c %c %c\n", &rows, &empty, &obs, &full) != 4) return 0;
+    if (rows <= 0 || empty == obs || empty == full || obs == full) return 0;
+    // Leer mapa
+    char **map = calloc(rows, sizeof(char*));
+    if (!map) return 0;
 
-Map* read_map(char *filename) {
-    FILE *file = filename ? fopen(filename, "r") : stdin;
-    if (!file) return NULL;
+    int cols = -1;
+    int valid = 1;
     
-    Map *m = malloc(sizeof(Map));
-    if (fscanf(file, "%d %c %c %c\n", &m->lines, &m->empty, &m->obstacle, &m->full) != 4 ||
-        m->lines <= 0 || m->empty == m->obstacle || m->empty == m->full || m->obstacle == m->full) {
-        free(m); if (filename) fclose(file); return NULL;
-    }
-    
-    m->map = malloc(m->lines * sizeof(char*));
-    m->width = 0;
-    
-    for (int i = 0; i < m->lines; i++) {
+    for (int i = 0; i < rows && valid; i++) {
         size_t len = 0;
-        if (getline(&m->map[i], &len, file) == -1) {
-            free(m); if (filename) fclose(file); return NULL;
+        if (getline(&map[i], &len, f) == -1) {
+            valid = 0;
+            break;
+        }        
+        int line_len = strlen(map[i]);
+        if (line_len > 0 && map[i][line_len-1] == '\n') {
+            map[i][--line_len] = '\0';
         }
         
-        int line_len = strlen(m->map[i]);
-        if (m->map[i][line_len - 1] == '\n') m->map[i][--line_len] = '\0';
-        
-        if (!i) m->width = line_len;
-        else if (line_len != m->width) {
-            free(m); if (filename) fclose(file); return NULL;
+        if (cols == -1) cols = line_len;
+        else if (line_len != cols) valid = 0;
+        // Validar caracteres
+        for (int j = 0; j < cols && valid; j++) {
+            if (map[i][j] != empty && map[i][j] != obs) valid = 0;
         }
-        
-        // Validate characters
-        for (int j = 0; j < line_len; j++) {
-            if (m->map[i][j] != m->empty && m->map[i][j] != m->obstacle) {
-                free(m); if (filename) fclose(file); return NULL;
+    }
+    if (!valid || cols <= 0) {
+        for (int i = 0; i < rows; i++) {
+            if (map[i]) free(map[i]);
+        }
+        free(map);
+        return 0;
+    }
+    // Calcular DP
+    int total = rows * cols;
+    int *dp = calloc(total, sizeof(int));
+    if (!dp) {
+        for (int i = 0; i < rows; i++) free(map[i]);
+        free(map);
+        return 0;
+    }
+    int max_size = 0, max_i = 0, max_j = 0;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            int idx = i * cols + j;
+            if (map[i][j] == obs) {
+                dp[idx] = 0;
+            } else {
+                if (i == 0 || j == 0) {
+                    dp[idx] = 1;
+                } else {
+                    dp[idx] = min3(dp[(i-1)*cols + j], 
+                                  dp[i*cols + (j-1)], 
+                                  dp[(i-1)*cols + (j-1)]) + 1;
+                }
+                if (dp[idx] > max_size) {
+                    max_size = dp[idx];
+                    max_i = i;
+                    max_j = j;
+                }
             }
         }
     }
-    
-    if (filename) fclose(file);
-    return m;
-}
-
-void solve_bsq(Map *m) {
-    int **dp = malloc(m->lines * sizeof(int*));
-    for (int i = 0; i < m->lines; i++) dp[i] = calloc(m->width, sizeof(int));
-    
-    int max_size = 0, best_i = 0, best_j = 0;
-    
-    for (int i = 0; i < m->lines; i++) {
-        for (int j = 0; j < m->width; j++) {
-            if (m->map[i][j] == m->obstacle) dp[i][j] = 0;
-            else dp[i][j] = (i == 0 || j == 0) ? 1 : min3(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1;
-            
-            if (dp[i][j] > max_size) {
-                max_size = dp[i][j];
-                best_i = i - max_size + 1;
-                best_j = j - max_size + 1;
+    // Marcar cuadrado
+    if (max_size > 0) {
+        for (int i = max_i - max_size + 1; i <= max_i; i++) {
+            for (int j = max_j - max_size + 1; j <= max_j; j++) {
+                map[i][j] = full;
             }
         }
     }
-    
-    // Fill the square
-    for (int i = 0; i < max_size; i++) {
-        for (int j = 0; j < max_size; j++) {
-            m->map[best_i + i][best_j + j] = m->full;
-        }
+    // Imprimir y liberar memoria
+    for (int i = 0; i < rows; i++) {
+        printf("%s\n", map[i]);
+        free(map[i]);
     }
-    
-    for (int i = 0; i < m->lines; i++) free(dp[i]);
+    free(map);
     free(dp);
-}
-
-void process_file(char *filename) {
-    Map *m = read_map(filename);
-    if (!m) {
-        fprintf(stderr, "map error\n");
-        return;
-    }
-    
-    solve_bsq(m);
-    for (int i = 0; i < m->lines; i++) printf("%s\n", m->map[i]);
-    
-    for (int i = 0; i < m->lines; i++) free(m->map[i]);
-    free(m->map); free(m);
+    return 1;
 }
 
 int main(int argc, char **argv) {
-    if (argc == 1) process_file(NULL);
-    else for (int i = 1; i < argc; i++) process_file(argv[i]);
+    if (argc == 1) {
+        if (!process_stream(stdin)) fprintf(stderr, "map error\n");
+    } else {
+        for (int i = 1; i < argc; i++) {
+            FILE *f = fopen(argv[i], "r");
+            if (!f) {
+                fprintf(stderr, "map error\n");
+            } else {
+                if (!process_stream(f)) fprintf(stderr, "map error\n");
+                fclose(f);
+            }
+            if (i < argc - 1) printf("\n");
+        }
+    }
     return 0;
 }
