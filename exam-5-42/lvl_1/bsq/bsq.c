@@ -1,108 +1,160 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-int min3(int a, int b, int c) { return a < b ? (a < c ? a : c) : (b < c ? b : c); }
+int str_len(char *text) {
+    int i = 0;
+    while (text[i]) i++;
+    return i;
+}
 
-int process_stream(FILE *f) {
-    int rows;
-    char empty, obs, full;    
-    // Leer cabecera
-    if (fscanf(f, "%d %c %c %c\n", &rows, &empty, &obs, &full) != 4) return 0;
-    if (rows <= 0 || empty == obs || empty == full || obs == full) return 0;
-    // Leer mapa
-    char **map = calloc(rows, sizeof(char*));
-    if (!map) return 0;
+void free_map(char **map, int rows) {
+    if (!map) return;
+    for (int i = 0; i < rows; i++)
+        free(map[i]);
+    free(map);
+}
 
-    int cols = -1;
-    int valid = 1;
-    
-    for (int i = 0; i < rows && valid; i++) {
-        size_t len = 0;
-        if (getline(&map[i], &len, f) == -1) {
-            valid = 0;
-            break;
-        }        
-        int line_len = strlen(map[i]);
-        if (line_len > 0 && map[i][line_len-1] == '\n') {
-            map[i][--line_len] = '\0';
-        }
-        
-        if (cols == -1) cols = line_len;
-        else if (line_len != cols) valid = 0;
-        // Validar caracteres
-        for (int j = 0; j < cols && valid; j++) {
-            if (map[i][j] != empty && map[i][j] != obs) valid = 0;
-        }
-    }
-    if (!valid || cols <= 0) {
-        for (int i = 0; i < rows; i++) {
-            if (map[i]) free(map[i]);
-        }
-        free(map);
+int read_map(FILE *fp, char ***map, int *rows, int *cols, char *empty, char *obstacle, char *full) {
+    char *line = NULL;
+    size_t capacity = 0;
+    ssize_t read_len;
+
+    if (fscanf(fp, "%d %c %c %c\n", rows, empty, obstacle, full) != 4)
         return 0;
-    }
-    // Calcular DP
-    int total = rows * cols;
-    int *dp = calloc(total, sizeof(int));
-    if (!dp) {
-        for (int i = 0; i < rows; i++) free(map[i]);
-        free(map);
+    if (*rows <= 0 || *empty == *obstacle || *empty == *full || *obstacle == *full)
         return 0;
+
+    *map = malloc(sizeof(char*) * (*rows));
+    if (!*map)
+        return 0;
+
+    *cols = 0;
+    for (int i = 0; i < *rows; i++) {
+        read_len = getline(&line, &capacity, fp);
+        if (read_len <= 0) {
+            free(line);
+            free_map(*map, i);
+            return 0;
+        }
+        if (line[read_len - 1] == '\n')
+            line[--read_len] = 0;
+
+        int len = str_len(line);
+        if (len == 0) {
+            free(line);
+            free_map(*map, i);
+            return 0;
+        }
+        if (*cols == 0)
+            *cols = len;
+        else if (len != *cols) {
+            free(line);
+            free_map(*map, i);
+            return 0;
+        }
+
+        for (int j = 0; j < len; j++) {
+            if (line[j] != *empty && line[j] != *obstacle) {
+                free(line);
+                free_map(*map, i);
+                return 0;
+            }
+        }
+
+        (*map)[i] = line;
+        line = NULL;
+        capacity = 0;
     }
-    int max_size = 0, max_i = 0, max_j = 0;
+    return 1;
+}
+
+int min3(int a, int b, int c) {
+    int m = a < b ? a : b;
+    return m < c ? m : c;
+}
+
+void solve_map(char **map, int rows, int cols, char empty, char obstacle, char full) {
+    int *prev = calloc(cols, sizeof(int));
+    int *curr = calloc(cols, sizeof(int));
+    if (!prev || !curr) {
+        free(prev);
+        free(curr);
+        return;
+    }
+
+    int best = 0, best_row = 0, best_col = 0;
+
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            int idx = i * cols + j;
-            if (map[i][j] == obs) {
-                dp[idx] = 0;
-            } else {
-                if (i == 0 || j == 0) {
-                    dp[idx] = 1;
-                } else {
-                    dp[idx] = min3(dp[(i-1)*cols + j], 
-                                  dp[i*cols + (j-1)], 
-                                  dp[(i-1)*cols + (j-1)]) + 1;
-                }
-                if (dp[idx] > max_size) {
-                    max_size = dp[idx];
-                    max_i = i;
-                    max_j = j;
+            if (map[i][j] == obstacle)
+                curr[j] = 0;
+            else {
+                if (i == 0 || j == 0)
+                    curr[j] = 1;
+                else
+                    curr[j] = 1 + min3(prev[j], curr[j - 1], prev[j - 1]);
+
+                if (curr[j] > best) {
+                    best = curr[j];
+                    best_row = i - best + 1;
+                    best_col = j - best + 1;
+                } else if (curr[j] == best && best > 0) {
+                    int new_row = i - curr[j] + 1;
+                    int new_col = j - curr[j] + 1;
+                    if (new_row < best_row || (new_row == best_row && new_col < best_col)) {
+                        best_row = new_row;
+                        best_col = new_col;
+                    }
                 }
             }
         }
-    }
-    // Marcar cuadrado
-    if (max_size > 0) {
-        for (int i = max_i - max_size + 1; i <= max_i; i++) {
-            for (int j = max_j - max_size + 1; j <= max_j; j++) {
-                map[i][j] = full;
-            }
+        for (int k = 0; k < cols; k++) {
+            prev[k] = curr[k];
+            curr[k] = 0;
         }
     }
-    // Imprimir y liberar memoria
+
+    free(prev);
+    free(curr);
+
+    for (int r = best_row; r < best_row + best; r++)
+        for (int c = best_col; c < best_col + best; c++)
+            map[r][c] = full;
+
     for (int i = 0; i < rows; i++) {
-        printf("%s\n", map[i]);
-        free(map[i]);
+        fputs(map[i], stdout);
+        fputs("\n", stdout);
     }
-    free(map);
-    free(dp);
-    return 1;
+}
+
+void process(FILE *fp) {
+    char **map = NULL;
+    int rows = 0, cols = 0;
+    char empty = 0, obstacle = 0, full = 0;
+
+    if (!read_map(fp, &map, &rows, &cols, &empty, &obstacle, &full)) {
+        fprintf(stderr, "map error\n");
+        return;
+    }
+
+    solve_map(map, rows, cols, empty, obstacle, full);
+    free_map(map, rows);
 }
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        if (!process_stream(stdin)) fprintf(stderr, "map error\n");
+        process(stdin);
     } else {
         for (int i = 1; i < argc; i++) {
-            FILE *f = fopen(argv[i], "r");
-            if (!f) {
+            FILE *fp = fopen(argv[i], "r");
+            if (!fp)
                 fprintf(stderr, "map error\n");
-            } else {
-                if (!process_stream(f)) fprintf(stderr, "map error\n");
-                fclose(f);
+            else {
+                process(fp);
+                fclose(fp);
             }
-            if (i < argc - 1) printf("\n");
+            if (i < argc - 1)
+                fputs("\n", stdout);
         }
     }
     return 0;
