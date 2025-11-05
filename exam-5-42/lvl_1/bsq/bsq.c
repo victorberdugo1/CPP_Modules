@@ -1,28 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* cuenta la longitud de una cadena */
 int strLen(char *s) {
     int i = 0;
     while (s[i]) i++;
     return i;
 }
 
-void liberarMapa(char **mapa, int filas) {
+/* libera toda la memoria del mapa */
+void freeMap(char **mapa, int filas) {
     if (!mapa) return;
     for (int i = 0; i < filas; i++) free(mapa[i]);
     free(mapa);
 }
 
-/* leerMapa: devuelve mapa (char**) o NULL si hay error
-   parámetros de salida: filas, columnas, vacio, obstaculo, relleno */
-char **leerMapa(FILE *fp, int *filas, int *columnas, char *vacio, char *obstaculo, char *relleno) {
+/* lee el mapa del archivo y valida su formato */
+char **leer(FILE *fp, int *filas, int *columnas, char *vacio, char *obstaculo, char *relleno) {
     char *linea = NULL;
-    size_t capacidad = 0;
+    size_t cap = 0;
     ssize_t leidos;
 
-    /* leer cabecera: numero de filas y tres caracteres */
+    /* cabecera con nº de filas y caracteres especiales */
     if (fscanf(fp, "%d %c %c %c\n", filas, vacio, obstaculo, relleno) != 4) return NULL;
-    /* validaciones de la cabecera: filas positivas y caracteres distintos */
     if (*filas <= 0 || *vacio == *obstaculo || *vacio == *relleno || *obstaculo == *relleno) return NULL;
 
     char **mapa = malloc(sizeof(char*) * (*filas));
@@ -30,122 +30,130 @@ char **leerMapa(FILE *fp, int *filas, int *columnas, char *vacio, char *obstacul
 
     *columnas = 0;
 
-    /* leer cada línea del mapa */
+    /* lectura línea a línea del mapa */
     for (int i = 0; i < *filas; i++) {
-        leidos = getline(&linea, &capacidad, fp);
-        if (leidos <= 0) { free(linea); liberarMapa(mapa, i); return NULL; }
+        leidos = getline(&linea, &cap, fp);
+        if (leidos <= 0) { free(linea); freeMap(mapa, i); return NULL; }
 
-        /* quitar salto de línea final si existe */
+        /* quitar salto de línea al final */
         if (linea[leidos - 1] == '\n') linea[--leidos] = 0;
 
         int ancho = strLen(linea);
-        /* línea vacía no permitida */
-        if (ancho == 0) { free(linea); liberarMapa(mapa, i); return NULL; }
+        if (ancho == 0) { free(linea); freeMap(mapa, i); return NULL; }
 
-        /* establecer o comprobar el número de columnas */
+        /* comprobar que todas las filas tienen la misma longitud */
         if (*columnas == 0) *columnas = ancho;
-        else if (ancho != *columnas) { free(linea); liberarMapa(mapa, i); return NULL; }
+        else if (ancho != *columnas) { free(linea); freeMap(mapa, i); return NULL; }
 
-        /* comprobar que cada caracter sea válido (vacío u obstáculo) */
-        for (int j = 0; j < ancho; j++) {
-            if (linea[j] != *vacio && linea[j] != *obstaculo) { free(linea); liberarMapa(mapa, i); return NULL; }
-        }
+        /* validar que cada carácter sea válido */
+        for (int j = 0; j < ancho; j++)
+            if (linea[j] != *vacio && linea[j] != *obstaculo) { free(linea); freeMap(mapa, i); return NULL; }
 
+        /* guardar la línea y reiniciar buffers */
         mapa[i] = linea;
         linea = NULL;
-        capacidad = 0;
+        cap = 0;
     }
 
     return mapa;
 }
 
-/* mínimo de tres enteros */
+/* devuelve el menor de tres valores */
 int min3(int a, int b, int c) {
     int m = a < b ? a : b;
     return m < c ? m : c;
 }
 
-/* resolver: calcula el mayor cuadrado y lo marca con relleno */
+/* resuelve el mapa buscando el mayor cuadrado vacío */
 void resolver(char **mapa, int filas, int columnas, char vacio, char obstaculo, char relleno) {
-    /* arrays DP por fila: filaAnterior y filaActual */
-    int *filaAnterior = calloc(columnas, sizeof(int));
-    int *filaActual = calloc(columnas, sizeof(int));
-    if (!filaAnterior || !filaActual) { free(filaAnterior); free(filaActual); return; }
+    int *filaPrev = calloc(columnas, sizeof(int));
+    int *filaAct = calloc(columnas, sizeof(int));
+    if (!filaPrev || !filaAct) { free(filaPrev); free(filaAct); return; }
 
-    int mejorTam = 0;
-    int mejorFila = 0;
-    int mejorColumna = 0;
+    int mejorTam = 0;   /* tamaño del cuadrado más grande encontrado */
+    int mejorFila = 0;  /* coordenada fila de inicio del cuadrado */
+    int mejorCol = 0;   /* coordenada columna de inicio del cuadrado */
 
-    /* recorre cada celda para construir la DP */
-    for (int fila = 0; fila < filas; fila++) {
-        for (int col = 0; col < columnas; col++) {
-            /* si es obstáculo, el tamaño de cuadrado termina en 0 */
-            if (mapa[fila][col] == obstaculo) filaActual[col] = 0;
+    /* algoritmo DP:
+       filaAct[c] guarda el tamaño del cuadrado que termina en (f,c) */
+    for (int f = 0; f < filas; f++) {
+        for (int c = 0; c < columnas; c++) {
+            if (mapa[f][c] == obstaculo) filaAct[c] = 0;
             else {
-                /* en la primera fila o columna el mayor cuadrado es 1 si es vacío */
-                if (fila == 0 || col == 0) filaActual[col] = 1;
-                else filaActual[col] = 1 + min3(filaAnterior[col], filaActual[col - 1], filaAnterior[col - 1]);
+                if (f == 0 || c == 0)
+                    filaAct[c] = 1; /* bordes: solo tamaño 1 */
+                else
+                    filaAct[c] = 1 + min3(filaPrev[c], filaAct[c - 1], filaPrev[c - 1]);
 
-                /* actualizar mejor cuadrado y su posición (arriba-izquierda) */
-                if (filaActual[col] > mejorTam) {
-                    mejorTam = filaActual[col];
-                    mejorFila = fila - mejorTam + 1;
-                    mejorColumna = col - mejorTam + 1;
-                } else if (filaActual[col] == mejorTam && mejorTam > 0) {
-                    /* en caso de empate, elegir el más alto y si hay empate el más a la izquierda */
-                    int filCand = fila - filaActual[col] + 1;
-                    int colCand = col - filaActual[col] + 1;
-                    if (filCand < mejorFila || (filCand == mejorFila && colCand < mejorColumna)) {
-                        mejorFila = filCand;
-                        mejorColumna = colCand;
+                /* si encontramos un cuadrado más grande, lo guardamos */
+                if (filaAct[c] > mejorTam) {
+                    mejorTam = filaAct[c];
+                    mejorFila = f - mejorTam + 1;
+                    mejorCol = c - mejorTam + 1;
+                }
+                /* desempate: prioridad arriba y luego a la izquierda */
+                else if (filaAct[c] == mejorTam && mejorTam > 0) {
+                    int candFila = f - filaAct[c] + 1;
+                    int candCol = c - filaAct[c] + 1;
+                    if (candFila < mejorFila || (candFila == mejorFila && candCol < mejorCol)) {
+                        mejorFila = candFila;
+                        mejorCol = candCol;
                     }
                 }
             }
         }
-        /* preparar para la siguiente fila: copiar filaActual a filaAnterior y resetear filaActual */
+
+        /* copiar fila actual a fila previa para siguiente iteración */
         for (int k = 0; k < columnas; k++) {
-            filaAnterior[k] = filaActual[k];
-            filaActual[k] = 0;
+            filaPrev[k] = filaAct[k];
+            filaAct[k] = 0;
         }
     }
 
-    free(filaAnterior);
-    free(filaActual);
+    free(filaPrev);
+    free(filaAct);
 
-    /* marcar el mayor cuadrado encontrado con el caracter de relleno */
+    /* pintar el cuadrado encontrado con el carácter de relleno */
     for (int r = mejorFila; r < mejorFila + mejorTam; r++)
-        for (int c = mejorColumna; c < mejorColumna + mejorTam; c++)
+        for (int c = mejorCol; c < mejorCol + mejorTam; c++)
             mapa[r][c] = relleno;
 
-    /* imprimir mapa resultante */
+    /* imprimir el mapa final */
     for (int r = 0; r < filas; r++) {
         fputs(mapa[r], stdout);
         fputs("\n", stdout);
     }
 }
 
-/* procesar archivo: lectura, resolución y limpieza */
-void procesarArchivo(FILE *fp) {
-    int filas = 0;
-    int columnas = 0;
+/* procesa un archivo o la entrada estándar */
+void procesar(FILE *fp) {
+    int filas = 0, columnas = 0;
     char vacio = 0, obstaculo = 0, relleno = 0;
 
-    char **mapa = leerMapa(fp, &filas, &columnas, &vacio, &obstaculo, &relleno);
+    /* leer y validar el mapa */
+    char **mapa = leer(fp, &filas, &columnas, &vacio, &obstaculo, &relleno);
     if (!mapa) { fprintf(stderr, "map error\n"); return; }
 
+    /* resolver y liberar memoria */
     resolver(mapa, filas, columnas, vacio, obstaculo, relleno);
-    liberarMapa(mapa, filas);
+    freeMap(mapa, filas);
 }
 
+/* main: si no hay argumentos, lee stdin; si hay, procesa cada archivo */
 int main(int argc, char **argv) {
-    if (argc == 1) {
-        procesarArchivo(stdin);
-    } else {
+    if (argc == 1)
+        procesar(stdin);
+    else {
         for (int i = 1; i < argc; i++) {
             FILE *fp = fopen(argv[i], "r");
-            if (!fp) fprintf(stderr, "map error\n");
-            else { procesarArchivo(fp); fclose(fp); }
-            if (i < argc - 1) fputs("\n", stdout);
+            if (!fp)
+                fprintf(stderr, "map error\n");
+            else {
+                procesar(fp);
+                fclose(fp);
+            }
+            if (i < argc - 1)
+                fputs("\n", stdout);
         }
     }
     return 0;
