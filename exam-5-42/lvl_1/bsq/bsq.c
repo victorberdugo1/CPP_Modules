@@ -1,156 +1,140 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int str_len(char *text) {
+static int strsize(const char *s) {
     int i = 0;
-    while (text[i]) i++;
+    while (s && s[i]) i++;
     return i;
 }
 
-void free_map(char **map, int rows) {
-    if (!map) return;
-    for (int i = 0; i < rows; i++)
-        free(map[i]);
-    free(map);
+static void freemap(char **mapa, int filas) {
+    if (!mapa) return;
+    for (int i = 0; i < filas; i++)
+        free(mapa[i]);
+    free(mapa);
 }
 
-int read_map(FILE *fp, char ***map, int *rows, int *cols, char *empty, char *obstacle, char *full) {
-    char *line = NULL;
-    size_t capacity = 0;
-    ssize_t read_len;
-
-    if (fscanf(fp, "%d %c %c %c\n", rows, empty, obstacle, full) != 4)
+static int leer(FILE *fp, char ***mapa, int *filas, int *cols,
+                char *vacio, char *bloque, char *marca) {
+    char *linea = NULL;
+    size_t cap = 0;
+    ssize_t n;
+    if (fscanf(fp, "%d %c %c %c\n", filas, vacio, bloque, marca) != 4)
         return 0;
-    if (*rows <= 0 || *empty == *obstacle || *empty == *full || *obstacle == *full)
+    if (*filas <= 0 || *vacio == *bloque || *vacio == *marca || *bloque == *marca)
         return 0;
-
-    *map = malloc(sizeof(char*) * (*rows));
-    if (!*map)
-        return 0;
-
+    *mapa = malloc(sizeof(char*) * (*filas));
+    if (!*mapa) return 0;
     *cols = 0;
-    for (int i = 0; i < *rows; i++) {
-        read_len = getline(&line, &capacity, fp);
-        if (read_len <= 0) {
-            free(line);
-            free_map(*map, i);
+    for (int i = 0; i < *filas; i++) {
+        n = getline(&linea, &cap, fp);
+        if (n <= 0) {
+            free(linea);
+            freemap(*mapa, i);
             return 0;
         }
-        if (line[read_len - 1] == '\n')
-            line[--read_len] = 0;
-
-        int len = str_len(line);
+        if (linea[n - 1] == '\n')
+            linea[--n] = '\0';
+        int len = strsize(linea);
         if (len == 0) {
-            free(line);
-            free_map(*map, i);
+            free(linea);
+            freemap(*mapa, i);
             return 0;
         }
-        if (*cols == 0)
-            *cols = len;
+        if (*cols == 0) *cols = len;
         else if (len != *cols) {
-            free(line);
-            free_map(*map, i);
+            free(linea);
+            freemap(*mapa, i);
             return 0;
         }
-
         for (int j = 0; j < len; j++) {
-            if (line[j] != *empty && line[j] != *obstacle) {
-                free(line);
-                free_map(*map, i);
+            if (linea[j] != *vacio && linea[j] != *bloque) {
+                free(linea);
+                freemap(*mapa, i);
                 return 0;
             }
         }
-
-        (*map)[i] = line;
-        line = NULL;
-        capacity = 0;
+        (*mapa)[i] = linea;
+        linea = NULL;
+        cap = 0;
     }
+    free(linea);
     return 1;
 }
 
-int min3(int a, int b, int c) {
+static int minimo3(int a, int b, int c) {
     int m = a < b ? a : b;
     return m < c ? m : c;
 }
 
-void solve_map(char **map, int rows, int cols, char empty, char obstacle, char full) {
-    int *prev = calloc(cols, sizeof(int));
-    int *curr = calloc(cols, sizeof(int));
-    if (!prev || !curr) {
-        free(prev);
-        free(curr);
+static void resolver(char **mapa, int filas, int cols, char vacio, char bloque, char marca) {
+    int *anterior = calloc(cols, sizeof(int));
+    int *actual = calloc(cols, sizeof(int));
+    if (!anterior || !actual) {
+        free(anterior);
+        free(actual);
         return;
     }
-
-    int best = 0, best_row = 0, best_col = 0;
-
-    for (int i = 0; i < rows; i++) {
+    int maxlado = 0, mejorfila = 0, mejorcol = 0;
+    for (int i = 0; i < filas; i++) {
         for (int j = 0; j < cols; j++) {
-            if (map[i][j] == obstacle)
-                curr[j] = 0;
+            if (mapa[i][j] == bloque) actual[j] = 0;
             else {
-                if (i == 0 || j == 0)
-                    curr[j] = 1;
-                else
-                    curr[j] = 1 + min3(prev[j], curr[j - 1], prev[j - 1]);
-
-                if (curr[j] > best) {
-                    best = curr[j];
-                    best_row = i - best + 1;
-                    best_col = j - best + 1;
-                } else if (curr[j] == best && best > 0) {
-                    int new_row = i - curr[j] + 1;
-                    int new_col = j - curr[j] + 1;
-                    if (new_row < best_row || (new_row == best_row && new_col < best_col)) {
-                        best_row = new_row;
-                        best_col = new_col;
+                if (i == 0 || j == 0) actual[j] = 1;
+                else actual[j] = 1 + minimo3(anterior[j], actual[j - 1], anterior[j - 1]);
+                if (actual[j] > maxlado) {
+                    maxlado = actual[j];
+                    mejorfila = i - maxlado + 1;
+                    mejorcol = j - maxlado + 1;
+                } else if (actual[j] == maxlado && maxlado > 0) {
+                    int nuevaFila = i - actual[j] + 1;
+                    int nuevaCol = j - actual[j] + 1;
+                    if (nuevaFila < mejorfila || (nuevaFila == mejorfila && nuevaCol < mejorcol)) {
+                        mejorfila = nuevaFila;
+                        mejorcol = nuevaCol;
                     }
                 }
             }
         }
-        for (int k = 0; k < cols; k++) {
-            prev[k] = curr[k];
-            curr[k] = 0;
-        }
+        int *temp = anterior;
+        anterior = actual;
+        actual = temp;
+        for (int k = 0; k < cols; k++)
+            actual[k] = 0;
     }
-
-    free(prev);
-    free(curr);
-
-    for (int r = best_row; r < best_row + best; r++)
-        for (int c = best_col; c < best_col + best; c++)
-            map[r][c] = full;
-
-    for (int i = 0; i < rows; i++) {
-        fputs(map[i], stdout);
+    free(anterior);
+    free(actual);
+    for (int r = mejorfila; r < mejorfila + maxlado; r++)
+        for (int c = mejorcol; c < mejorcol + maxlado; c++)
+            mapa[r][c] = marca;
+    for (int i = 0; i < filas; i++) {
+        fputs(mapa[i], stdout);
         fputs("\n", stdout);
     }
 }
 
-void process(FILE *fp) {
-    char **map = NULL;
-    int rows = 0, cols = 0;
-    char empty = 0, obstacle = 0, full = 0;
-
-    if (!read_map(fp, &map, &rows, &cols, &empty, &obstacle, &full)) {
+static void procesar(FILE *fp) {
+    char **mapa = NULL;
+    int filas = 0, cols = 0;
+    char vacio = 0, bloque = 0, marca = 0;
+    if (!leer(fp, &mapa, &filas, &cols, &vacio, &bloque, &marca)) {
         fprintf(stderr, "map error\n");
         return;
     }
-
-    solve_map(map, rows, cols, empty, obstacle, full);
-    free_map(map, rows);
+    resolver(mapa, filas, cols, vacio, bloque, marca);
+    freemap(mapa, filas);
 }
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        process(stdin);
+        procesar(stdin);
     } else {
         for (int i = 1; i < argc; i++) {
             FILE *fp = fopen(argv[i], "r");
             if (!fp)
                 fprintf(stderr, "map error\n");
             else {
-                process(fp);
+                procesar(fp);
                 fclose(fp);
             }
             if (i < argc - 1)
@@ -159,3 +143,4 @@ int main(int argc, char **argv) {
     }
     return 0;
 }
+
