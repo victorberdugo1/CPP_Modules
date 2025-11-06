@@ -18,18 +18,18 @@ int contar(int filas, int cols, int *tab, int fila, int col)
 
 void sig(int filas, int cols, int *tab)
 {
- int *nuevo = calloc(filas * cols, sizeof(int));
- if (!nuevo) return;
+ int *new = calloc(filas * cols, sizeof(int));
+ if (!new) return;
  for (int fila = 0; fila < filas; fila++) {
   for (int col = 0; col < cols; col++) {
    int vec = contar(filas, cols, tab, fila, col);
    int cel = tab[fila * cols + col];
-   nuevo[fila * cols + col] = (cel && (vec == 2 || vec == 3)) || (!cel && vec == 3);
+   new[fila * cols + col] = (cel && (vec == 2 || vec == 3)) || (!cel && vec == 3);
   }
  }
  for (int i = 0; i < filas * cols; i++)
-  tab[i] = nuevo[i];
- free(nuevo);
+  tab[i] = new[i];
+ free(new);
 }
 
 void mostrar(int filas, int cols, int *tab)
