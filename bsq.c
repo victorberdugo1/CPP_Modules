@@ -41,37 +41,38 @@ int main(int argc, char **argv) {
         { free(line); return fprintf(stderr, "map error\n"), 1; }
     
     // Leer mapa
-    char **map = malloc(rows * sizeof(char *));
+    char **map = malloc(rows * sizeof(char*));
     int cols = -1;
     
     for (int r = 0; r < rows; r++) {
-        if (getline(&line, &len, f) <= 0) {
-            for (int k = 0; k < r; k++) free(map[k]);
+        ssize_t n = getline(&line, &len, f);
+        if (n <= 0 || line[n-1] != '\n') {
+            while (r-- > 0) free(map[r]);
             free(map); free(line);
+            if (f != stdin) fclose(f);
             return fprintf(stderr, "map error\n"), 1;
         }
         
-        int line_len = 0;
-        while (line[line_len] && line[line_len] != '\n') line_len++;
-        if (line[line_len] == '\n') line[line_len] = '\0';
-        
-        if (cols == -1) cols = line_len;
-        else if (line_len != cols) {
-            for (int k = 0; k <= r; k++) free(map[k]);
+        int clen = n - 1;
+        if (cols == -1) cols = clen;
+        if (clen != cols || clen <= 0) {
+            while (r-- > 0) free(map[r]);
             free(map); free(line);
+            if (f != stdin) fclose(f);
             return fprintf(stderr, "map error\n"), 1;
         }
         
         map[r] = malloc(cols + 1);
         for (int j = 0; j < cols; j++) {
             if (line[j] != emp && line[j] != obs) {
-                for (int k = 0; k <= r; k++) free(map[k]);
+                while (r >= 0) free(map[r--]);
                 free(map); free(line);
+                if (f != stdin) fclose(f);
                 return fprintf(stderr, "map error\n"), 1;
             }
             map[r][j] = line[j];
         }
-        map[r][cols] = '\0';
+        map[r][cols] = 0;
     }
     free(line);
 
