@@ -6,103 +6,112 @@ int min(int a, int b, int c) {
     return m < c ? m : c;
 }
 
-char **leer(FILE *f, int *rows, int *cols, char *emp, char *obs, char *ful) {
-    char *line = NULL;
-    size_t len = 0;
+char **leer(FILE *file, int *nrows, int *ncols, char *empty, char *obst, char *fill) {
+    char *buf = NULL;
+    size_t cap = 0;
     
-    ssize_t rlen = getline(&line, &len, f);
-    if (rlen <= 0) return free(line), NULL;
+    ssize_t len = getline(&buf, &cap, file);
+    if (len <= 0) return free(buf), NULL;
     
-    int i = 0;
-    *rows = 0;
-    while (i < (int)rlen && line[i] >= '0' && line[i] <= '9')
-        *rows = *rows * 10 + (line[i++] - '0');
+    int idx = 0;
+    *nrows = 0;
+    while (idx < (int)len && buf[idx] >= '0' && buf[idx] <= '9')
+        *nrows = *nrows * 10 + (buf[idx++] - '0');
     
-    int end = (int)rlen - 1;
-    if (end >= 0 && line[end] == '\n') end--;
+    int last = (int)len - 1;
+    if (last >= 0 && buf[last] == '\n') last--;
     
-    for (int j = 2; j >= 0; j--) {
-        while (end >= 0 && (line[end] == ' ' || line[end] == '\t')) end--;
-        if (end < 0) return free(line), NULL;
-        if (j == 2) *ful = line[end--];
-        else if (j == 1) *obs = line[end--];
-        else *emp = line[end--];
+    for (int i = 2; i >= 0; i--) {
+        while (last >= 0 && (buf[last] == ' ' || buf[last] == '\t')) last--;
+        if (last < 0) return free(buf), NULL;
+        if (i == 2) *fill = buf[last--];
+        else if (i == 1) *obst = buf[last--];
+        else *empty = buf[last--];
     }
     
-    if (*rows <= 0 || *emp == *obs || *emp == *ful || *obs == *ful)
-        return free(line), NULL;
+    if (*nrows <= 0 || *empty == *obst || *empty == *fill || *obst == *fill)
+        return free(buf), NULL;
     
-    char **map = malloc(*rows * sizeof(char*));
-    *cols = -1;
+    char **grid = malloc(*nrows * sizeof(char*));
+    *ncols = -1;
     
-    for (int r = 0; r < *rows; r++) {
-        ssize_t n = getline(&line, &len, f);
-        if (n <= 0 || line[n-1] != '\n') {
-            while (r-- > 0) free(map[r]);
-            return free(map), free(line), NULL;
+    for (int row = 0; row < *nrows; row++) {
+        ssize_t rlen = getline(&buf, &cap, file);
+        if (rlen <= 0 || buf[rlen-1] != '\n') {
+            while (row-- > 0) free(grid[row]);
+            return free(grid), free(buf), NULL;
         }
         
-        int clen = n - 1;
-        if (*cols == -1) *cols = clen;
-        if (clen != *cols || clen <= 0) {
-            while (r-- > 0) free(map[r]);
-            return free(map), free(line), NULL;
+        int width = rlen - 1;
+        if (*ncols == -1) *ncols = width;
+        if (width != *ncols || width <= 0) {
+            while (row-- > 0) free(grid[row]);
+            return free(grid), free(buf), NULL;
         }
         
-        map[r] = malloc(*cols + 1);
-        for (int j = 0; j < *cols; j++) {
-            if (line[j] != *emp && line[j] != *obs) {
-                while (r >= 0) free(map[r--]);
-                return free(map), free(line), NULL;
+        grid[row] = malloc(*ncols + 1);
+        for (int col = 0; col < *ncols; col++) {
+            if (buf[col] != *empty && buf[col] != *obst) {
+                while (row >= 0) free(grid[row--]);
+                return free(grid), free(buf), NULL;
             }
-            map[r][j] = line[j];
+            grid[row][col] = buf[col];
         }
-        map[r][*cols] = 0;
+        grid[row][*ncols] = 0;
     }
     
-    return free(line), map;
+    return free(buf), grid;
 }
 
-void resolver(int rows, int cols, char **map, char obs, char ful) {
-    int *prev = calloc(cols, sizeof(int));
-    int *curr = calloc(cols, sizeof(int));
-    int sz = 0, sr = 0, sc = 0;
+void resolver(int nrows, int ncols, char **grid, char obst, char fill) {
+    int *dpPrev = calloc(ncols, sizeof(int));
+    int *dpCurr = calloc(ncols, sizeof(int));
+    int maxSz = 0, maxRow = 0, maxCol = 0;
     
-    for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {
-            curr[c] = map[r][c] == obs ? 0 : (c == 0 ? 1 : 1 + min(prev[c], curr[c-1], prev[c-1]));
-            if (curr[c] > sz) sz = curr[c], sr = r, sc = c;
+    for (int row = 0; row < nrows; row++) {
+        for (int col = 0; col < ncols; col++) {
+            dpCurr[col] = grid[row][col] == obst ? 0 
+                : (col == 0 ? 1 : 1 + min(dpPrev[col], dpCurr[col-1], dpPrev[col-1]));
+            
+            if (dpCurr[col] > maxSz) {
+                maxSz = dpCurr[col];
+                maxRow = row;
+                maxCol = col;
+            }
         }
-        int *t = prev; prev = curr; curr = t;
+        int *tmp = dpPrev;
+        dpPrev = dpCurr;
+        dpCurr = tmp;
     }
     
-    if (sz > 0)
-        for (int r = sr - sz + 1; r <= sr; r++)
-            for (int c = sc - sz + 1; c <= sc; c++)
-                map[r][c] = ful;
+    if (maxSz > 0) {
+        for (int row = maxRow - maxSz + 1; row <= maxRow; row++)
+            for (int col = maxCol - maxSz + 1; col <= maxCol; col++)
+                grid[row][col] = fill;
+    }
     
-    free(prev);
-    free(curr);
+    free(dpPrev);
+    free(dpCurr);
 }
 
 int main(int argc, char **argv) {
-    FILE *f = argc > 1 ? fopen(argv[1], "r") : stdin;
-    if (!f) return fprintf(stderr, "map error\n"), 1;
+    FILE *file = argc > 1 ? fopen(argv[1], "r") : stdin;
+    if (!file) return fprintf(stderr, "map error\n"), 1;
     
-    int rows, cols;
-    char emp, obs, ful;
-    char **map = leer(f, &rows, &cols, &emp, &obs, &ful);
+    int nrows, ncols;
+    char empty, obst, fill;
+    char **grid = leer(file, &nrows, &ncols, &empty, &obst, &fill);
     
-    if (f != stdin) fclose(f);
-    if (!map) return fprintf(stderr, "map error\n"), 1;
+    if (file != stdin) fclose(file);
+    if (!grid) return fprintf(stderr, "map error\n"), 1;
     
-    resolver(rows, cols, map, obs, ful);
+    resolver(nrows, ncols, grid, obst, fill);
     
-    for (int r = 0; r < rows; r++) {
-        printf("%s\n", map[r]);
-        free(map[r]);
+    for (int row = 0; row < nrows; row++) {
+        printf("%s\n", grid[row]);
+        free(grid[row]);
     }
     
-    free(map);
+    free(grid);
     return 0;
 }
