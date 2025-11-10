@@ -1,77 +1,86 @@
-// main.c
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 int min3(int a, int b, int c) {
-	return a < b ? (a < c ? a : c) : (b < c ? b : c);
+	return (a < b ? (a < c ? a : c) : (b < c ? b : c));
 }
 
-/* Lee la cabecera y el mapa; devuelve un array de filas (strings).
-   Formato esperado primera línea: <rows><c1><c2><c3>\n
-   Donde c1 = caracter vacío, c2 = obstáculo, c3 = relleno. */
-char **leer_mapa(FILE *f, int *rows, int *cols, char *vac, char *obs, char *relleno) {
+/* Lee cabecera del mapa y obtiene filas y caracteres */
+int leer_cabecera(FILE *f, int *rows, char *vac, char *obs, char *full) {
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t r = getline(&line, &len, f);
-	if (r <= 0) { free(line); return NULL; }
+	if (r <= 0) { free(line); return 0; }
 
-	/* leer número de filas */
-	char *p = line;
-	long rr = strtol(p, &p, 10);
-	if (rr <= 0) { free(line); return NULL; }
-	*rows = (int)rr;
+	int i = 0;
+	*rows = 0;
+	while (line[i] >= '0' && line[i] <= '9') {
+		*rows = *rows * 10 + (line[i] - '0');
+		i++;
+	}
 
-	/* buscar los 3 últimos caracteres no-espacio (antes del '\n') */
-	int i = (int)r - 1;
-	while (i >= 0 && (line[i] == '\n' || line[i] == ' ' || line[i] == '\t')) i--;
-	if (i < 2) { free(line); return NULL; }
-	*relleno = line[i--];
-	*obs     = line[i--];
-	*vac     = line[i--];
-	if (*vac == *obs || *vac == *relleno || *obs == *relleno) { free(line); return NULL; }
+	if (*rows <= 0 || r < 4) { free(line); return 0; }
+
+	/* últimos 3 caracteres antes del '\n' */
+	int end = (int)r - 2;
+	if (end < 2) { free(line); return 0; }
+
+	*full = line[end--];
+	*obs  = line[end--];
+	*vac  = line[end--];
+
+	if (*vac == *obs || *vac == *full || *obs == *full) {
+		free(line);
+		return 0;
+	}
 
 	free(line);
+	return 1;
+}
 
-	char **map = malloc((*rows) * sizeof(char*));
+/* Lee el mapa completo */
+char **leer_mapa(FILE *f, int rows, int *cols, char vac, char obs) {
+	char **map = malloc(rows * sizeof(char *));
 	if (!map) return NULL;
+
+	char *line = NULL;
+	size_t len = 0;
 	*cols = -1;
 
-	for (int rrow = 0; rrow < *rows; rrow++) {
-		ssize_t n = getline(&line, &len, f);
-		if (n <= 0 || line[n-1] != '\n') {
-			for (int k = 0; k < rrow; k++) free(map[k]);
-			free(map); free(line);
-			return NULL;
-		}
-		int clen = (int)n - 1;
+	for (int i = 0; i < rows; i++) {
+		ssize_t r = getline(&line, &len, f);
+		if (r <= 0) { free(line); for (int k = 0; k < i; k++) free(map[k]); free(map); return NULL; }
+
+		if (line[r - 1] == '\n') line[r - 1] = '\0';
+		int clen = 0;
+		while (line[clen]) clen++;
+
 		if (*cols == -1) *cols = clen;
-		if (clen != *cols || clen <= 0) {
-			for (int k = 0; k < rrow; k++) free(map[k]);
-			free(map); free(line);
+		else if (clen != *cols) {
+			free(line); for (int k = 0; k < i; k++) free(map[k]); free(map);
 			return NULL;
 		}
-		map[rrow] = malloc(*cols + 1);
-		if (!map[rrow]) {
-			for (int k = 0; k < rrow; k++) free(map[k]);
-			free(map); free(map); return NULL;
-		}
-		for (int c = 0; c < *cols; c++) {
-			if (line[c] != *vac && line[c] != *obs) {
-				for (int k = 0; k <= rrow; k++) free(map[k]);
-				free(map); free(line); return NULL;
+
+		map[i] = malloc(clen + 1);
+		if (!map[i]) { free(line); for (int k = 0; k < i; k++) free(map[k]); free(map); return NULL; }
+
+		for (int j = 0; j < clen; j++) {
+			if (line[j] != vac && line[j] != obs) {
+				free(line);
+				for (int k = 0; k <= i; k++) free(map[k]);
+				free(map);
+				return NULL;
 			}
-			map[rrow][c] = line[c];
+			map[i][j] = line[j];
 		}
-		map[rrow][*cols] = '\0';
+		map[i][clen] = '\0';
 	}
 	free(line);
 	return map;
 }
 
-/* Resuelve el BSQ usando programación dinámica por filas.
-   Mantengo dos arrays de ints: prev (fila r-1) y curr (fila r). */
-void resolver_bsq(int rows, int cols, char **map, char obs, char relleno) {
+/* Algoritmo BSQ */
+void resolver_bsq(int rows, int cols, char **map, char obs, char full) {
 	int *prev = calloc(cols, sizeof(int));
 	int *curr = calloc(cols, sizeof(int));
 	if (!prev || !curr) { free(prev); free(curr); return; }
@@ -80,28 +89,30 @@ void resolver_bsq(int rows, int cols, char **map, char obs, char relleno) {
 
 	for (int r = 0; r < rows; r++) {
 		for (int c = 0; c < cols; c++) {
-			if (map[r][c] == obs) {
+			if (map[r][c] == obs)
 				curr[c] = 0;
-			} else {
-				if (c == 0) curr[c] = 1;
-				else curr[c] = 1 + min3(prev[c], curr[c-1], prev[c-1]);
-			}
+			else if (r == 0 || c == 0)
+				curr[c] = 1;
+			else
+				curr[c] = 1 + min3(prev[c], curr[c - 1], prev[c - 1]);
+
 			if (curr[c] > best_size) {
 				best_size = curr[c];
 				best_r = r;
 				best_c = c;
 			}
 		}
-		/* preparar siguiente fila: prev <- curr, y poner curr a cero */
-		int *tmp = prev; prev = curr; curr = tmp;
-		memset(curr, 0, cols * sizeof(int));
+		/* swap prev y curr */
+		for (int c = 0; c < cols; c++) {
+			prev[c] = curr[c];
+			curr[c] = 0;
+		}
 	}
 
-	/* marcar la mejor submatriz encontrada */
 	if (best_size > 0) {
 		for (int r = best_r - best_size + 1; r <= best_r; r++)
 			for (int c = best_c - best_size + 1; c <= best_c; c++)
-				map[r][c] = relleno;
+				map[r][c] = full;
 	}
 
 	free(prev);
@@ -113,17 +124,24 @@ int main(int argc, char **argv) {
 	if (!f) return fprintf(stderr, "map error\n"), 1;
 
 	int rows, cols;
-	char vac, obs, relleno;
-	char **map = leer_mapa(f, &rows, &cols, &vac, &obs, &relleno);
+	char vac, obs, full;
+	if (!leer_cabecera(f, &rows, &vac, &obs, &full)) {
+		if (f != stdin) fclose(f);
+		return fprintf(stderr, "map error\n"), 1;
+	}
+
+	char **map = leer_mapa(f, rows, &cols, vac, obs);
 	if (f != stdin) fclose(f);
 	if (!map) return fprintf(stderr, "map error\n"), 1;
 
-	resolver_bsq(rows, cols, map, obs, relleno);
+	resolver_bsq(rows, cols, map, obs, full);
 
 	for (int r = 0; r < rows; r++) {
-		printf("%s\n", map[r]);
+		fputs(map[r], stdout);
+		fputc('\n', stdout);
 		free(map[r]);
 	}
 	free(map);
 	return 0;
 }
+
