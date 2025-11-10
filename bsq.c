@@ -5,7 +5,6 @@ int min3(int a, int b, int c) {
 	return (a < b ? (a < c ? a : c) : (b < c ? b : c));
 }
 
-/* Lee cabecera del mapa y obtiene filas y caracteres */
 int leer_cabecera(FILE *f, int *rows, char *vac, char *obs, char *full) {
 	char *line = NULL;
 	size_t len = 0;
@@ -38,49 +37,44 @@ int leer_cabecera(FILE *f, int *rows, char *vac, char *obs, char *full) {
 	return 1;
 }
 
-/* Lee el mapa completo */
-char **leer_mapa(FILE *f, int rows, int *cols, char vac, char obs) {
-	char **map = malloc(rows * sizeof(char *));
-	if (!map) return NULL;
-
+/* Lee el mapa completo en un solo bloque */
+char *leer_mapa(FILE *f, int rows, int *cols, char vac, char obs) {
 	char *line = NULL;
 	size_t len = 0;
-	*cols = -1;
+	ssize_t r = getline(&line, &len, f);
+	if (r <= 0) { free(line); return NULL; }
 
-	for (int i = 0; i < rows; i++) {
-		ssize_t r = getline(&line, &len, f);
-		if (r <= 0) { free(line); for (int k = 0; k < i; k++) free(map[k]); free(map); return NULL; }
+	/* Determinar cantidad de columnas en la primera línea */
+	if (line[r - 1] == '\n') line[r - 1] = '\0';
+	*cols = 0;
+	while (line[*cols]) (*cols)++;
 
-		if (line[r - 1] == '\n') line[r - 1] = '\0';
-		int clen = 0;
-		while (line[clen]) clen++;
+	char *tab = malloc(rows * (*cols));
+	if (!tab) { free(line); return NULL; }
 
-		if (*cols == -1) *cols = clen;
-		else if (clen != *cols) {
-			free(line); for (int k = 0; k < i; k++) free(map[k]); free(map);
-			return NULL;
+	/* Copiar primera línea */
+	for (int c = 0; c < *cols; c++) {
+		if (line[c] != vac && line[c] != obs) { free(line); free(tab); return NULL; }
+		tab[c] = line[c];
+	}
+
+	/* Leer resto de líneas */
+	for (int i = 1; i < rows; i++) {
+		ssize_t r2 = getline(&line, &len, f);
+		if (r2 <= 0) { free(line); free(tab); return NULL; }
+		if (line[r2 - 1] == '\n') line[r2 - 1] = '\0';
+
+		for (int c = 0; c < *cols; c++) {
+			if (line[c] != vac && line[c] != obs) { free(line); free(tab); return NULL; }
+			tab[i * (*cols) + c] = line[c];
 		}
-
-		map[i] = malloc(clen + 1);
-		if (!map[i]) { free(line); for (int k = 0; k < i; k++) free(map[k]); free(map); return NULL; }
-
-		for (int j = 0; j < clen; j++) {
-			if (line[j] != vac && line[j] != obs) {
-				free(line);
-				for (int k = 0; k <= i; k++) free(map[k]);
-				free(map);
-				return NULL;
-			}
-			map[i][j] = line[j];
-		}
-		map[i][clen] = '\0';
 	}
 	free(line);
-	return map;
+	return tab;
 }
 
-/* Algoritmo BSQ */
-void resolver_bsq(int rows, int cols, char **map, char obs, char full) {
+/* Algoritmo BSQ usando un solo array */
+void resolver_bsq(int rows, int cols, char *tab, char obs, char full) {
 	int *prev = calloc(cols, sizeof(int));
 	int *curr = calloc(cols, sizeof(int));
 	if (!prev || !curr) { free(prev); free(curr); return; }
@@ -89,7 +83,7 @@ void resolver_bsq(int rows, int cols, char **map, char obs, char full) {
 
 	for (int r = 0; r < rows; r++) {
 		for (int c = 0; c < cols; c++) {
-			if (map[r][c] == obs)
+			if (tab[r * cols + c] == obs)
 				curr[c] = 0;
 			else if (r == 0 || c == 0)
 				curr[c] = 1;
@@ -109,14 +103,23 @@ void resolver_bsq(int rows, int cols, char **map, char obs, char full) {
 		}
 	}
 
+	/* Marcar el cuadrado más grande */
 	if (best_size > 0) {
 		for (int r = best_r - best_size + 1; r <= best_r; r++)
 			for (int c = best_c - best_size + 1; c <= best_c; c++)
-				map[r][c] = full;
+				tab[r * cols + c] = full;
 	}
-
 	free(prev);
 	free(curr);
+}
+
+/* Mostrar el mapa lineal */
+void mostrar(int rows, int cols, char *tab) {
+	for (int r = 0; r < rows; r++) {
+		for (int c = 0; c < cols; c++)
+			putchar(tab[r * cols + c]);
+		putchar('\n');
+	}
 }
 
 int main(int argc, char **argv) {
@@ -130,18 +133,12 @@ int main(int argc, char **argv) {
 		return fprintf(stderr, "map error\n"), 1;
 	}
 
-	char **map = leer_mapa(f, rows, &cols, vac, obs);
+	char *tab = leer_mapa(f, rows, &cols, vac, obs);
 	if (f != stdin) fclose(f);
-	if (!map) return fprintf(stderr, "map error\n"), 1;
+	if (!tab) return fprintf(stderr, "map error\n"), 1;
 
-	resolver_bsq(rows, cols, map, obs, full);
-
-	for (int r = 0; r < rows; r++) {
-		fputs(map[r], stdout);
-		fputc('\n', stdout);
-		free(map[r]);
-	}
-	free(map);
+	resolver_bsq(rows, cols, tab, obs, full);
+	mostrar(rows, cols, tab);
+	free(tab);
 	return 0;
 }
-
