@@ -1,33 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int min(int a, int b, int c) {
-    int m = a < b ? a : b;
-    return m < c ? m : c;
+int min(int a, int b, int c){
+	int m = a < b ? a : b;
+	return m < c ? m : c;
 }
 
-int leer_cab(FILE *f, int *rows, char *vac, char *obs, char *full){
+int cabecera(FILE *f, int *rows, char *vac, char *obs, char *full){
 	char *line = NULL;
 	size_t len = 0;
-	if (getline(&line, &len, f) <= 0) {free(line); return 0;}
+	if (getline(&line, &len, f) <= 0) {free(line); return 1;}
 	*rows = 0;
 	int i = 0;
 	while (line[i] >= '0' && line[i] <= '9'){
 		*rows = *rows * 10 + (line[i] - '0');
 		i++;
 	}
-	if (*rows <= 0) {free(line); return 0;}
+	if (*rows <= 0) {free(line); return 1;}
 	while (line[i] && line[i] != '\n') i++;
-	if (i < 3) {free(line); return 0;}
+	if (i < 3) {free(line); return 1;}
 	*full = line[i - 1];
 	*obs = line[i - 2];
 	*vac = line[i - 3];
 	int ok = (*vac != *obs && *vac != *full && *obs != *full);
 	free(line);
-	return ok;
+	return !ok;
 }
 
-char *leer_mapa(FILE *f, int rows, int *cols, char vac, char obs){
+char *mapa(FILE *f, int rows, int *cols, char vac, char obs){
 	char *line = NULL;
 	size_t len = 0;
 	if (getline(&line, &len, f) <= 0) {free(line); return NULL;}
@@ -58,7 +58,7 @@ void resolver(int rows, int cols, char *tab, char obs, char full){
 			else if (r == 0 || c == 0)
 				curr[c] = 1;
 			else
-				curr[c] = 1 + min3(prev[c], curr[c - 1], prev[c - 1]);
+				curr[c] = 1 + min(prev[c], curr[c - 1], prev[c - 1]);
 			if (curr[c] > best){
 				best = curr[c];
 				br = r;
@@ -88,11 +88,11 @@ int main(int argc, char **argv){
 	if (!f) return fprintf(stderr, "map error\n"), 1;
 	int rows, cols;
 	char vac, obs, full;
-	if (!leer_cab(f, &rows, &vac, &obs, &full)){
+	if (cabecera(f, &rows, &vac, &obs, &full)){
 		if (f != stdin) fclose(f);
 		return fprintf(stderr, "map error\n"), 1;
 	}
-	char *tab = leer_mapa(f, rows, &cols, vac, obs);
+	char *tab = mapa(f, rows, &cols, vac, obs);
 	if (f != stdin) fclose(f);
 	if (!tab) return fprintf(stderr, "map error\n"), 1;
 	resolver(rows, cols, tab, obs, full);
