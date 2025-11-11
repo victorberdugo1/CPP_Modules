@@ -2,127 +2,157 @@
 #include <stdlib.h>
 
 int min3(int a, int b, int c) {
-    return (a < b) ? ((a < c) ? a : c) : ((b < c) ? b : c);
+    return a < b ? (a < c ? a : c) : (b < c ? b : c);
 }
 
-int main(int argc, char **argv) {
-    FILE *f = (argc > 1) ? fopen(argv[1], "r") : stdin;
-    if (!f) { fprintf(stderr, "map error\n"); return 1; }
-    
-    // Leer primera línea: "9.ox"
+int procesar(FILE *archivo) {
     char *linea = NULL;
     size_t tam = 0;
-    ssize_t len = getline(&linea, &tam, f);
+    ssize_t largo = getline(&linea, &tam, archivo);
     
-    // Extraer filas y caracteres
-    int filas = atoi(linea);
-    char vacio = linea[len-4], obs = linea[len-3], lleno = linea[len-2];
-    free(linea);
+    // Extraer filas
+    int filas = 0, i = 0;
+    while (linea[i] >= '0' && linea[i] <= '9') 
+        filas = filas * 10 + (linea[i++] - '0');
     
-    if (filas <= 0 || vacio == obs || vacio == lleno || obs == lleno) {
-        if (f != stdin) fclose(f);
-        fprintf(stderr, "map error\n");
-        return 1;
+    // Validar primera línea
+    if (largo < 4 || linea[largo-1] != '\n' || largo - i != 4 || filas <= 0) {
+        free(linea);
+        return 0;
     }
     
-    // Leer primera fila para saber columnas
+    char vacio = linea[largo-4];
+    char obstaculo = linea[largo-3];
+    char lleno = linea[largo-2];
+    free(linea);
+    
+    if (vacio == obstaculo || vacio == lleno || obstaculo == lleno) 
+        return 0;
+    
+    // Leer primera fila
     linea = NULL;
-    len = getline(&linea, &tam, f);
-    int cols = 0;
-    while (linea[cols] && linea[cols] != '\n') cols++;
+    largo = getline(&linea, &tam, archivo);
+    if (largo <= 1 || linea[largo-1] != '\n') {
+        free(linea);
+        return 0;
+    }
+    
+    int columnas = 0;
+    while (linea[columnas] != '\n') {
+        if (linea[columnas] != vacio && linea[columnas] != obstaculo) {
+            free(linea);
+            return 0;
+        }
+        columnas++;
+    }
+    
+    if (columnas == 0) {
+        free(linea);
+        return 0;
+    }
     
     // Crear mapa
-    char *mapa = malloc(filas * cols);
-    int *t = calloc(filas * cols, sizeof(int));
-    if (!mapa || !t) {
-        free(linea); free(mapa); free(t);
-        if (f != stdin) fclose(f);
-        fprintf(stderr, "map error\n");
-        return 1;
+    char *mapa = malloc(filas * columnas);
+    int *tabla = calloc(filas * columnas, sizeof(int));
+    if (!mapa || !tabla) {
+        free(linea);
+        free(mapa);
+        free(tabla);
+        return 0;
     }
     
-    // Copiar primera fila
-    for (int c = 0; c < cols; c++) mapa[c] = linea[c];
+    for (int c = 0; c < columnas; c++) 
+        mapa[c] = linea[c];
     
     // Leer resto de filas
-    for (int r = 1; r < filas; r++) {
-        getline(&linea, &tam, f);
-        for (int c = 0; c < cols; c++) mapa[r * cols + c] = linea[c];
+    for (int fila = 1; fila < filas; fila++) {
+        largo = getline(&linea, &tam, archivo);
+        if (largo != columnas + 1 || linea[largo-1] != '\n') {
+            free(linea);
+            free(mapa);
+            free(tabla);
+            return 0;
+        }
+        
+        for (int col = 0; col < columnas; col++) {
+            if (linea[col] != vacio && linea[col] != obstaculo) {
+                free(linea);
+                free(mapa);
+                free(tabla);
+                return 0;
+            }
+            mapa[fila * columnas + col] = linea[col];
+        }
     }
     
     free(linea);
-    if (f != stdin) fclose(f);
     
-    // ALGORITMO DP (lo importante)
-    int max_tam = 0, max_r = 0, max_c = 0;
+    // Algoritmo DP
+    int max_tamaño = 0, max_fila = 0, max_col = 0;
     
-    for (int r = 0; r < filas; r++) {
-        for (int c = 0; c < cols; c++) {
-            int pos = r * cols + c;
+    for (int fila = 0; fila < filas; fila++) {
+        for (int col = 0; col < columnas; col++) {
+            int pos = fila * columnas + col;
             
-            if (mapa[pos] == obs) {
-                t[pos] = 0;
-            } else if (r == 0 || c == 0) {
-                t[pos] = 1;
+            if (mapa[pos] == obstaculo) {
+                tabla[pos] = 0;
+            } else if (fila == 0 || col == 0) {
+                tabla[pos] = 1;
             } else {
-                t[pos] = 1 + min3(t[pos - cols], t[pos - 1], t[pos - cols - 1]);
+                tabla[pos] = 1 + min3(tabla[pos - columnas], 
+                                      tabla[pos - 1], 
+                                      tabla[pos - columnas - 1]);
             }
             
-            if (t[pos] > max_tam) {
-                max_tam = t[pos];
-                max_r = r;
-                max_c = c;
+            if (tabla[pos] > max_tamaño) {
+                max_tamaño = tabla[pos];
+                max_fila = fila;
+                max_col = col;
             }
         }
     }
     
-    free(t);
+    free(tabla);
     
     // Rellenar cuadrado
-    for (int r = max_r - max_tam + 1; r <= max_r; r++)
-        for (int c = max_c - max_tam + 1; c <= max_c; c++)
-            mapa[r * cols + c] = lleno;
+    for (int fila = max_fila - max_tamaño + 1; fila <= max_fila; fila++) {
+        for (int col = max_col - max_tamaño + 1; col <= max_col; col++) {
+            mapa[fila * columnas + col] = lleno;
+        }
+    }
     
     // Imprimir
-    for (int r = 0; r < filas; r++) {
-        for (int c = 0; c < cols; c++) putchar(mapa[r * cols + c]);
-        putchar('\n');
+    for (int fila = 0; fila < filas; fila++) {
+        for (int col = 0; col < columnas; col++) {
+            fputc(mapa[fila * columnas + col], stdout);
+        }
+        fputc('\n', stdout);
     }
     
     free(mapa);
+    return 1;
+}
+
+int main(int argc, char **argv) {
+    if (argc == 1) {
+        if (!procesar(stdin)) {
+            fprintf(stderr, "map error\n");
+        }
+    } else {
+        for (int i = 1; i < argc; i++) {
+            FILE *archivo = fopen(argv[i], "r");
+            
+            if (!archivo || !procesar(archivo)) {
+                fprintf(stderr, "map error\n");
+            }
+            
+            if (archivo) 
+                fclose(archivo);
+            
+            if (i + 1 < argc) 
+                fputc('\n', stdout);
+        }
+    }
+    
     return 0;
 }
-
-/*
-#include <stdio.h>
-#include <stdlib.h>
-
-int min3(int a, int b, int c) { return a<b?(a<c?a:c):(b<c?b:c); }
-
-int main(int ac, char **av) {
-    FILE *f = ac>1 ? fopen(av[1],"r") : stdin;
-    char *ln=NULL; size_t sz=0;
-    getline(&ln,&sz,f);
-    int R=atoi(ln), C, i=0;
-    char e=ln[strlen(ln)-4], o=ln[strlen(ln)-3], x=ln[strlen(ln)-2];
-    free(ln);
-    
-    getline(&ln,&sz,f); while(ln[i]&&ln[i]!='\n')i++; C=i;
-    char *m=malloc(R*C); int *t=calloc(R*C,4);
-    for(int c=0;c<C;c++)m[c]=ln[c];
-    for(int r=1;r<R;r++){getline(&ln,&sz,f);for(int c=0;c<C;c++)m[r*C+c]=ln[c];}
-    free(ln); if(f!=stdin)fclose(f);
-    
-    int M=0,Mr=0,Mc=0;
-    for(int r=0;r<R;r++)for(int c=0;c<C;c++){
-        int p=r*C+c;
-        t[p]=(m[p]==o)?0:(r==0||c==0)?1:1+min3(t[p-C],t[p-1],t[p-C-1]);
-        if(t[p]>M){M=t[p];Mr=r;Mc=c;}
-    }
-    free(t);
-    
-    for(int r=Mr-M+1;r<=Mr;r++)for(int c=Mc-M+1;c<=Mc;c++)m[r*C+c]=x;
-    for(int r=0;r<R;r++){for(int c=0;c<C;c++)putchar(m[r*C+c]);putchar('\n');}
-    free(m);
-}
-*/
