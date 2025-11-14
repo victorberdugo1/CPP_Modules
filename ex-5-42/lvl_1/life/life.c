@@ -52,9 +52,9 @@ int main(int c, char **v){
 	int col = 0, fila = 0, lapiz = 0;
 	char t;
 	while(read(0,&t,1) == 1){
-		if(t == 'w' && fila > 0) fila--;
+		if(t == 'w' && fila >= 0) fila--;
 		else if(t == 's' && fila < filas -1) fila++;
-		else if(t == 'a' && col > 0) col--;
+		else if(t == 'a' && col >= 0) col--;
 		else if(t == 'd' && col < cols - 1) col ++;
 		else if(t == 'x') lapiz = !lapiz;
 		if (lapiz) tab[fila * cols + col] = 1;
