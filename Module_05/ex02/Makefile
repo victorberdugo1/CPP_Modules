@@ -1,3 +1,14 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2025/11/25 14:28:47 by vberdugo          #+#    #+#              #
+#    Updated: 2025/11/25 14:28:49 by vberdugo         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
 
 SRC = main.cpp Bureaucrat.cpp Form.cpp ShrubberyCreationForm.cpp	\
 	  RobotomyRequestForm.cpp PresidentialPardonForm.cpp

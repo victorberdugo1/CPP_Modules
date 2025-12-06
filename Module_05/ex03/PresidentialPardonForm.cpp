@@ -1,3 +1,14 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   PresidentialPardonForm.cpp                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: vberdugo <vberdugo@student.42barcelon      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/11/25 14:45:38 by vberdugo          #+#    #+#             */
+/*   Updated: 2025/11/25 14:45:40 by vberdugo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "PresidentialPardonForm.hpp"
 #include "Bureaucrat.hpp"
