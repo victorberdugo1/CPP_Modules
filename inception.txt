@@ -1,0 +1,559 @@
+su
+apt install sudo
+
+sudo -i
+sudo apt install openssh-server
+sudo systemctl status ssh
+
+-luego en MV Bridge Adapter
+ssh victor@10.11.249.106
+
+sudo apt install build-essential ca-certificates curl gnupg lsb-release vim -y
+
+build-essential → Instala un metapaquete con herramientas esenciales de desarrollo
+ca-certificates → Permite validar HTTPS
+curl → Descarga la clave GPG de Docker
+gnupg → Verifica que los paquetes vienen de Docker
+lsb-release  → Detecta tu versión de Debian
+
+
+* Añadir el repositorio oficial de Docker *
+
+sudo mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+
+* Instalar Docker *
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+
+* Docker sin sudo *
+
+sudo usermod -aG docker vberdugo
+newgrp docker
+
+* test *
+docker run hello-world
+
+→ mensaje que dice “Hello from Docker!”
+
+* Crear estructura base de Inception *
+
+cd /home/vberdugo
+mkdir -p inception/srcs/requirements/{nginx,mariadb,wordpress}
+mkdir -p inception/secrets
+touch inception/Makefile inception/srcs/docker-compose.yml inception/srcs/.env
+
+mkdir -p /home/vberdugo/data/mariadb
+mkdir -p /home/vberdugo/data/wordpress
+
+
+
+
+| Carpeta / archivo           | Propósito                                                             |
+| --------------------------- | --------------------------------------------------------------------- |
+| srcs/requirements/nginx     | Aquí irá el Dockerfile y configuración de Nginx                       |
+| srcs/requirements/mariadb   | Dockerfile y configuración de MariaDB                                 |
+| srcs/requirements/wordpress | Dockerfile y archivos de WordPress                                    |
+| secrets                     | Guardar contraseñas y secretos (NO subir a Git)                       |
+| Makefile                    | Automatizar `docker build` y `docker-compose up`                      |
+| docker-compose.yml          | Definir servicios, volúmenes, red y variables                         |
+| .env                        | Guardar variables de entorno (contraseñas, usuario DB, dominio, etc.) |
+
+
+* Configurar dominio login.42.fr *
+
+ip a
+→ 2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:2e:7e:af brd ff:ff:ff:ff:ff:ff
+    inet 10.11.249.106/16 brd 10.11.255.255 scope global dynamic enp0s3
+    
+sudo vim /etc/hosts
+
+Agrega esta línea al final del archivo:
+127.0.0.1 vberdugo.42.fr
+
+Probar→ → 
+
+ping victor.42.fr
+→ PING victor.42.fr (10.11.249.106) 56(84) bytes of data.
+64 bytes from victor.42.fr (10.11.249.106): icmp_seq=1 ttl=64 time=0.023 ms
+^C
+--- victor.42.fr ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.023/0.023/0.023/0.000 ms
+
+→ → 
+→ →
+
+vim ~/inception/srcs/docker-compose.yml
+
+version: "3.9"
+
+services:
+  nginx:
+    build:
+      context: ./requirements/nginx
+      args:
+        DOMAIN_NAME: ${DOMAIN_NAME}
+    container_name: nginx
+    ports:
+      - "443:443"
+    restart: always
+    networks:
+      - inception_net
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress_data:/var/www/html:ro
+      - ./requirements/nginx/conf:/etc/nginx/http.d
+      - ./requirements/nginx/ssl:/etc/ssl:ro
+
+  mariadb:
+    build: ./requirements/mariadb
+    container_name: mariadb
+    restart: always
+    networks:
+      - inception_net
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    env_file:
+      - ./.env
+    secrets:
+      - db_root_password
+      - db_password
+
+  wordpress:
+    build: ./requirements/wordpress
+    container_name: wordpress
+    restart: always
+    networks:
+      - inception_net
+    volumes:
+      - wordpress_data:/var/www/html
+    env_file:
+      - ./.env
+    secrets:
+      - db_root_password
+      - db_password
+    depends_on:
+      - mariadb
+
+volumes:
+  wordpress_data:
+    name: wordpress_data
+    driver: local
+  mariadb_data:
+    name: mariadb_data
+    driver: local
+
+networks:
+  inception_net:
+    driver: bridge
+
+secrets:
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  db_password:
+    file: ../secrets/db_password.txt
+
+
+
+
+→ → 
+→ →
+
+vim ~/inception/srcs/.env 
+
+
+# Dominio
+DOMAIN_NAME=vberdugo.42.fr
+
+# MariaDB
+MYSQL_DATABASE=wordpress
+MYSQL_USER=wp_vberdugo
+MYSQL_PASSWORD_FILE=/run/secrets/db_password
+MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+
+# WordPress conexión a DB
+WORDPRESS_DB_HOST=mariadb:3306
+WORDPRESS_DB_NAME=${MYSQL_DATABASE}
+WORDPRESS_DB_USER=${MYSQL_USER}
+WORDPRESS_DB_PASSWORD_FILE=${MYSQL_PASSWORD_FILE}
+
+# WordPress título del sitio
+WORDPRESS_TITLE="Inception Site"
+
+# Usuario administrador de WordPress
+WORDPRESS_ADMIN=superuser42
+WORDPRESS_ADMIN_PASS_FILE=/run/secrets/db_password
+WORDPRESS_ADMIN_EMAIL=superuser42@vberdugo.42.fr
+
+# Usuario normal de WordPress
+WORDPRESS_USER=wp_user42
+WORDPRESS_USER_PASS_FILE=/run/secrets/db_password
+WORDPRESS_USER_EMAIL=wp_user42@vberdugo.42.fr
+
+
+→ → Nota: Nunca pongas contraseñas reales en Git. Guarda las contraseñas en secrets/ y referencia variables de entorno en los Dockerfiles cuando sea posible.
+
+mkdir -p ~/inception/secrets && \
+echo "WpUserSecret42!" > ~/inception/secrets/db_password.txt && \
+echo "SuperSecretRoot123!" > ~/inception/secrets/db_root_password.txt
+
+
+→ → 
+
+vim ~/inception/srcs/requirements/mariadb/Dockerfile
+
+# Base image
+FROM alpine:3.22
+
+RUN apk update && apk add --no-cache mariadb mariadb-client bash
+
+RUN mkdir -p /run/mysqld && chown -R mysql:mysql /run/mysqld
+
+COPY conf/my.cnf /etc/my.cnf
+
+COPY tools/init_db.sh /usr/local/bin/init_db.sh
+RUN chmod +x /usr/local/bin/init_db.sh
+
+EXPOSE 3306
+
+ENTRYPOINT ["/usr/local/bin/init_db.sh"]
+
+
+→ → 
+
+# Crear carpetas
+mkdir -p ~/inception/srcs/requirements/mariadb/conf
+mkdir -p ~/inception/srcs/requirements/mariadb/tools
+
+# Crear archivos
+vim ~/inception/srcs/requirements/mariadb/conf/my.cnf
+
+[mysqld]
+user            = mysql
+datadir         = /var/lib/mysql
+bind-address    = 0.0.0.0
+skip-networking = 0
+skip-name-resolve
+sql_mode        = "STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+
+
+vim ~/inception/srcs/requirements/mariadb/tools/init_db.sh
+
+#!/bin/bash
+set -e
+
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+    echo "INSTALLING BASE MARIADB TABLES..."
+    mysql_install_db --user=mysql --datadir=/var/lib/mysql
+fi
+
+if [ ! -d "/var/lib/mysql/${MYSQL_DATABASE}" ]; then
+    echo "INITIALIZING MARIADB DATABASE..."
+
+    mysqld_safe --skip-networking &
+
+    until mysqladmin ping --silent; do
+        sleep 1
+    done
+
+    DB_ROOT_PASS=$(cat "${MYSQL_ROOT_PASSWORD_FILE}")
+    DB_USER_PASS=$(cat "${MYSQL_PASSWORD_FILE}")
+
+    mysql -u root --skip-password -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;"
+    mysql -u root --skip-password -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${DB_USER_PASS}';"
+    mysql -u root --skip-password -e "GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';"
+
+    mysql -u root --skip-password -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASS}';"
+    mysql -u root -p"${DB_ROOT_PASS}" -e "FLUSH PRIVILEGES;"
+
+    mysqladmin shutdown -p"${DB_ROOT_PASS}"
+
+    echo "DATABASE INITIALIZED SUCCESSFULLY."
+fi
+
+exec mysqld_safe --datadir=/var/lib/mysql
+
+
+
+# Dar permisos de ejecución al script
+chmod +x ~/inception/srcs/requirements/mariadb/tools/init_db.sh
+
+
+
+→ → 
+
+vim ~/inception/srcs/requirements/nginx/Dockerfile
+
+FROM alpine:3.22
+
+RUN apk update && \
+    apk add --no-cache nginx openssl gettext net-tools iproute2
+
+ARG DOMAIN_NAME
+ENV DOMAIN_NAME=${DOMAIN_NAME}
+
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 365 \
+        -subj "/C=ES/ST=Madrid/L=Madrid/O=42/OU=Inception/CN=${DOMAIN_NAME}" \
+        -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/server.key \
+        -out /etc/nginx/ssl/server.crt
+
+COPY conf/default.conf /etc/nginx/http.d/default.conf
+
+EXPOSE 443
+
+CMD ["nginx", "-g", "daemon off;"]
+
+
+→ → 
+mkdir -p ~/inception/srcs/requirements/nginx/conf
+vim ~/inception/srcs/requirements/nginx/conf/default.conf
+
+
+server {
+	listen 443 ssl;
+	server_name vberdugo.42.fr;
+
+	ssl_certificate /etc/nginx/ssl/server.crt;
+	ssl_certificate_key /etc/nginx/ssl/server.key;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_prefer_server_ciphers on;
+
+	root /var/www/html;
+	index index.php index.html index.htm;
+
+	location / {
+		try_files $uri $uri/ /index.php?$args;
+	}
+
+	location ~ \.php$ {
+		include fastcgi_params;
+		fastcgi_pass wordpress:9000;
+		fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+		fastcgi_index index.php;
+	}
+}
+
+
+
+→ → 
+vim ~/inception/srcs/requirements/wordpress/Dockerfile
+
+
+
+FROM alpine:3.22
+
+RUN apk update && apk add --no-cache \
+    php83 \
+    php83-fpm \
+    php83-mysqli \
+    php83-json \
+    php83-curl \
+    php83-dom \
+    php83-exif \
+    php83-fileinfo \
+    php83-mbstring \
+    php83-openssl \
+    php83-xml \
+    php83-zip \
+    php83-phar \
+    php83-tokenizer \
+    php83-iconv \
+    php83-gd \
+    php83-ctype \
+    php83-session \
+    php83-intl \
+    mariadb-client \
+    curl \
+    wget \
+    tar \
+    unzip \
+    less
+
+RUN sed -i 's/memory_limit = .*/memory_limit = 512M/' /etc/php*/php.ini
+
+RUN ln -fs /usr/bin/php83 /usr/bin/php
+
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
+    chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp
+
+RUN addgroup -S www-data || true && adduser -S www-data -G www-data || true
+
+RUN mkdir -p /run/php /var/www/html && \
+    chown -R www-data:www-data /run/php /var/www/html && \
+    chmod -R 755 /var/www/html
+
+COPY ./conf/www.conf /etc/php83/php-fpm.d/www.conf
+
+COPY ./tools/setup.sh /usr/local/bin/setup.sh
+RUN chmod +x /usr/local/bin/setup.sh
+
+WORKDIR /var/www/html
+
+EXPOSE 9000
+
+ENTRYPOINT ["/usr/local/bin/setup.sh"]
+
+
+→ → → → 
+mkdir -p ~/inception/srcs/requirements/wordpress/conf/
+vim ~/inception/srcs/requirements/wordpress/conf/www.conf
+
+
+[wordpress_site]
+
+user = www-data
+group = www-data
+
+listen = 0.0.0.0:9000
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+pm = dynamic
+pm.max_children = 20
+pm.start_servers = 3
+pm.min_spare_servers = 1
+pm.max_spare_servers = 5
+
+
+mkdir -p ~/inception/srcs/requirements/wordpress/tools/
+vim ~/inception/srcs/requirements/wordpress/tools/setup.sh
+
+#!/bin/sh
+set -e
+
+echo "STARTING WORDPRESS CONTAINER..."
+
+[ -f /run/secrets/db_password ] || exit 1
+db_pass=$(cat /run/secrets/db_password)
+
+admin_pass_file=${WORDPRESS_ADMIN_PASS_FILE:-/run/secrets/db_password}
+[ -f "$admin_pass_file" ] || exit 1
+admin_pass=$(cat "$admin_pass_file")
+
+user_pass_file=${WORDPRESS_USER_PASS_FILE:-/run/secrets/db_password}
+[ -f "$user_pass_file" ] || exit 1
+user_pass=$(cat "$user_pass_file")
+
+if [ ! -f ./wp-config.php ]; then
+    echo "DOWNLOADING WORDPRESS..."
+    wp core download --allow-root
+fi
+
+until mysqladmin ping -h mariadb -u"$WORDPRESS_DB_USER" -p"$db_pass" --silent; do
+    echo "MARIADB IS NOT READY..."
+    sleep 5
+done
+
+if [ ! -f ./wp-config.php ]; then
+    echo "CONFIGURING WORDPRESS..."
+    wp config create \
+        --dbname="$WORDPRESS_DB_NAME" \
+        --dbuser="$WORDPRESS_DB_USER" \
+        --dbpass="$db_pass" \
+        --dbhost=mariadb \
+        --skip-check \
+        --allow-root
+
+    echo "INSTALLING WORDPRESS..."
+    wp core install \
+        --url="https://$DOMAIN_NAME" \
+        --title="$WORDPRESS_TITLE" \
+        --admin_user="$WORDPRESS_ADMIN" \
+        --admin_password="$admin_pass" \
+        --admin_email="$WORDPRESS_ADMIN_EMAIL" \
+        --skip-email \
+        --allow-root
+
+    echo "CREATING ADDITIONAL USER..."
+    wp user create "$WORDPRESS_USER" "$WORDPRESS_USER_EMAIL" \
+        --role=author \
+        --user_pass="$user_pass" \
+        --allow-root
+fi
+
+THEME_NAME="twentytwentytwo"
+if ! wp theme is-installed $THEME_NAME --allow-root; then
+    wp theme install $THEME_NAME --allow-root
+fi
+wp theme activate $THEME_NAME --allow-root
+
+echo "STARTING PHP-FPM..."
+exec php-fpm83 -F
+
+
+
+→ → 
+vim ~/inception/Makefile
+
+# Makefile para Inception
+
+DC = docker compose -f ./srcs/docker-compose.yml --env-file /home/vberdugo/inception/srcs/.env
+DATA = /home/vberdugo/data
+
+all: build up
+
+build:
+	mkdir -p $(DATA)/wordpress
+	mkdir -p $(DATA)/mariadb
+	$(DC) build
+
+up:
+	$(DC) up -d
+
+down:
+	$(DC) down
+
+clean:
+	$(DC) down --remove-orphans
+
+fclean:
+	$(DC) down -v --rmi all --remove-orphans
+	sudo rm -rf $(DATA)
+	docker system prune --volumes -f
+
+restart: clean all
+
+re: fclean all
+
+help:
+	@echo "Available commands:"
+	@echo "  make all      - Create data folders, build images, and launch containers"
+	@echo "  make build    - Build images of all services"
+	@echo "  make up       - Launch containers in the background"
+	@echo "  make down     - Stop containers"
+	@echo "  make restart  - Restart containers"
+	@echo "  make re       - Delete all and restart"
+	@echo "  make clean    - Delete containers"
+	@echo "  make fclean   - Delete $(DATA), containers, images and volumes"
+	@echo "  make help     - Show this help"
+
+h: help
+
+.PHONY: all build up down clean fclean restart re help h
+
+
+
+
+* Red y volúmenes
+
+docker compose -f srcs/docker-compose.yml ps
+docker volume ls
+docker network ls
+
+
+
+docker compose -f srcs/docker-compose.yml down
+docker compose -f srcs/docker-compose.yml up -d --build
+
+
+
