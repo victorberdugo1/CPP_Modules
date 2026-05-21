@@ -37,7 +37,6 @@ char *str_join(char *buf, char *add)
 {
  char *newbuf;
  int len;
-
  if (buf == 0)
   len = 0;
  else
@@ -53,17 +52,13 @@ char *str_join(char *buf, char *add)
  return (newbuf);
 }
 
-char *outbuf[65536], *inbuf[65536];
-int ids[65536], max_fd;
+char *outbuf[FD_SETSIZE], *inbuf[FD_SETSIZE];
+int ids[FD_SETSIZE], max_fd;
 fd_set fds, r_ready, w_ready;
 char tmp[120000];
 int sockfd;
 
-void fatal(void)
-{
- write(2, "Fatal error\n", 12);
- exit(1);
-}
+void fatal(void) { write(2, "Fatal error\n", 12); exit(1); }
 
 void queue(int sender, char *msg)
 {
@@ -79,12 +74,14 @@ void queue(int sender, char *msg)
 void disconnect(int fd)
 {
  sprintf(tmp, "server: client %d just left\n", ids[fd]);
+ queue(fd, tmp);
+  
  FD_CLR(fd, &fds);
  close(fd);
  free(inbuf[fd]);
  free(outbuf[fd]);
  inbuf[fd] = outbuf[fd] = NULL;
- queue(fd, tmp);
+
  while (max_fd >= 0 && !FD_ISSET(max_fd, &fds))
   max_fd--;
 }
@@ -122,7 +119,6 @@ int main(int ac, char **av)
 
   if (select(max_fd + 1, &r_ready, &w_ready, NULL, NULL) < 0)
    fatal();
-
   for (int fd = 0; fd <= max_fd; fd++)
   {
    if (fd == sockfd || !FD_ISSET(fd, &w_ready) || !outbuf[fd])
@@ -146,7 +142,6 @@ int main(int ac, char **av)
    free(outbuf[fd]);
    outbuf[fd] = nb;
   }
-
   if (FD_ISSET(sockfd, &r_ready))
   {
    len = sizeof(cli);
@@ -166,7 +161,6 @@ int main(int ac, char **av)
    sprintf(tmp, "server: client %d just arrived\n", ids[connfd]);
    queue(connfd, tmp);
   }
-
   for (int fd = 0; fd <= max_fd; fd++)
   {
    if (fd == sockfd || !FD_ISSET(fd, &r_ready))
