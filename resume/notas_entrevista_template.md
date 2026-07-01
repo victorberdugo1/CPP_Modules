@@ -8,6 +8,7 @@
 - Nombre completo: _______________________________________________
 - Ciudad / País: ________________________________________________
 - Email profesional: ____________________________________________
+- Teléfono *(opcional, ver sección 10 — Privacidad)*: ______________
 - LinkedIn / Portfolio: _________________________________________
 - GitHub / Otros: _______________________________________________
 
@@ -20,6 +21,8 @@ ___________________________________________________________________
 
 Objetivo profesional:
 ___________________________________________________________________
+
+Título/rol para el CV (ej. "Full Stack Developer"): ______________
 
 ---
 
@@ -41,6 +44,7 @@ Cursos / certificaciones adicionales:
 - Fechas: ___________________ (mes/año – mes/año)
 - Tareas: __________________________________________________________
 - Logros: __________________________________________________________
+- Responsabilidades no evidentes por el título (liderazgo, KPIs, cliente, etc.): _______
 
 **Experiencia 2:**
 - Empresa: ___________________  Cargo: __________________________
@@ -61,24 +65,32 @@ Cursos / certificaciones adicionales:
 
 ---
 
-### 6. PROYECTOS
+### 6. HABILIDADES BLANDAS (Soft Skills)
+- Forma de trabajar en equipo: _____________________________________
+- Gestión de plazos y presión: _____________________________________
+- Comunicación en otros idiomas de trabajo: ________________________
+- Experiencia presentando/explicando a personas no técnicas: ______
+
+---
+
+### 7. PROYECTOS
 **Proyecto 1:**
 - Nombre: __________________________________________________________
 - Descripción: _____________________________________________________
 - Tecnologías: _____________________________________________________
-- Rol: _____________________________________________________________
+- Rol específico (qué hizo él/ella, no el equipo): ________________
 - URL/Repo: ________________________________________________________
 
 **Proyecto 2:**
 - Nombre: __________________________________________________________
 - Descripción: _____________________________________________________
 - Tecnologías: _____________________________________________________
-- Rol: _____________________________________________________________
+- Rol específico: __________________________________________________
 - URL/Repo: ________________________________________________________
 
 ---
 
-### 7. IDIOMAS
+### 8. IDIOMAS
 | Idioma | Nivel oral | Nivel escrito | Certificado |
 |--------|------------|---------------|-------------|
 |        |            |               |             |
@@ -86,7 +98,20 @@ Cursos / certificaciones adicionales:
 
 ---
 
-### 8. OTROS
+### 9. DISPONIBILIDAD Y MODALIDAD
+- Horas semanales disponibles: _____________________________________
+- Modalidad preferida (remoto / presencial / híbrido): ____________
+- Limitaciones de fechas: __________________________________________
+
+---
+
+### 10. PRIVACIDAD
+- Datos que **NO** debe incluir el CV público: _____________________
+- ¿Autoriza LinkedIn/GitHub visible durante la evaluación entre pares? (Sí/No): ______
+
+---
+
+### 11. OTROS
 - Premios / reconocimientos: _______________________________________
 - Intereses relevantes: ___________________________________________
 - Notas adicionales: ______________________________________________
