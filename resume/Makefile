@@ -41,6 +41,7 @@ OUTPUTS  := $(OUT_HTML) $(OUT_JS) $(OUT_WASM) $(OUT_DATA)
 SRC        := chess_viewer.c pgn_loader.c
 ASSETS_DIR := assets
 SHELL_FILE := shell.html
+VIDEO_EXPORT := video_export.js
 
 # Carpeta destino de "make copy" (cambiala a la tuya o pasala con DEST=...)
 DEST ?= /mnt/c/Users/$(USER)/Desktop/chess_wasm
@@ -109,7 +110,7 @@ run: all
 
 copy: all
 	mkdir -p "$(DEST)"
-	cp $(OUTPUTS) "$(DEST)/"
+	cp $(OUTPUTS) $(VIDEO_EXPORT) "$(DEST)/"
 	@echo "Copiado a $(DEST)"
 
 clean:

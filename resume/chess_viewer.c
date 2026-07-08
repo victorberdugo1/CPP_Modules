@@ -1,80 +1,80 @@
-// chess_viewer.c -- visualizador minimo de partidas de ajedrez con raylib (WASM)
-//
-// Build (ver build.sh):
-//   emcc chess_viewer.c -o index.html \
-//     -Os -Wall -DPLATFORM_WEB \
-//     -I. -Iraylib/src -Lraylib/src -lraylib \
-//     -s USE_GLFW=3 -s ASYNCIFY \
-//     --preload-file assets \
-//     -s TOTAL_MEMORY=67108864 \
-//     --shell-file shell.html
-//
-// Controles:
-//   -> / Espacio : jugada siguiente
-//   <-           : jugada anterior
-//   Home / End   : ir al inicio / final de la partida
-//   P            : autoplay on/off
-//   Q/E R/F W/S A/D : orbitar / zoom / paneo camara
-
 #include "raylib.h"
 #include "raymath.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <stdbool.h>
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
 #endif
 
 #include "pgn_loader.h"
+#include "video_export.h"
 
-// Poné aca tu .pgn (dentro de assets/ para que --preload-file lo empaquete).
 #define GAME_PGN_FILE "assets/game.pgn"
 
-// ---------------------------------------------------------------------------
-// Config del tablero: chess_board.glb NO trae los ejes corregidos (viene de
-// un FBX sin re-orientar), asi que su "arriba" real es el eje Z local, no Y.
-// Las mallas de casillas ocupan x:[-0.24,0.24] y:[-0.24,0.24] z:[-0.0022,0.0122]
-// en espacio local -- tablero de 0.48m (8 casillas de 0.06m) plano en XY, con
-// Z como grosor/altura. Para que quede plano y con Y-arriba en raylib le
-// aplicamos una rotacion de -90 grados en X al Model.transform (raylib la
-// aplica sola en cada DrawModel, no hay que tocar los vertices).
-// ---------------------------------------------------------------------------
-#define BOARD_HALF_EXTENT 0.24f
-#define BOARD_SQUARE_SIZE  (BOARD_HALF_EXTENT * 2.0f / 8.0f)   // 0.06 m
-#define BOARD_TOP_Y        0.0122f                              // cara superior de las casillas, tras rotar
+#define PIECE_ANIMATION_DURATION 0.4f
 
-// chess_board.glb viene modelado en "centimetros" (footprint real de las
-// casillas: -24..24 unidades, marco: -30.5..30.5). Todas las constantes de
-// arriba (BOARD_HALF_EXTENT, BOARD_SQUARE_SIZE, BOARD_TOP_Y) ya estan
-// calculadas asumiendo el modelo escalado x0.01 a metros -- por eso hay que
-// aplicar ese factor al dibujarlo, si no el tablero sale 100x mas grande de
-// lo que el resto del codigo (y las piezas, que si vienen ya en metros)
-// espera.
+#define BOARD_HALF_EXTENT 0.24f
+#define BOARD_SQUARE_SIZE  (BOARD_HALF_EXTENT * 2.0f / 8.0f)
+#define BOARD_TOP_Y        0.0122f
 #define BOARD_MODEL_SCALE 0.01f
 
-// ---------------------------------------------------------------------------
-// Paleta con contraste real. OJO: nunca usar (0,0,0) puro para "negro" ni
-// (255,255,255) puro para "blanco" en las piezas -- con el shader default de
-// raylib (sin luz, solo texelColor*colDiffuse*tint) un material (0,0,0)
-// sale liso y sin ningun matiz, no se distingue la forma de la pieza.
-// ---------------------------------------------------------------------------
-#define COLOR_PIECE_WHITE (Color){ 235, 227, 210, 255 } // marfil calido
-#define COLOR_PIECE_BLACK (Color){  42,  37,  34, 255 } // "negro" carbon
-#define COLOR_BOARD_LIGHT (Color){ 222, 202, 165, 255 } // casilla clara
-#define COLOR_BOARD_DARK  (Color){  92,  60,  40, 255 } // casilla oscura
+#define COLOR_PIECE_WHITE (Color){ 235, 227, 210, 255 }
+#define COLOR_PIECE_BLACK (Color){  42,  37,  34, 255 }
+#define COLOR_BOARD_LIGHT (Color){ 222, 202, 165, 255 }
+#define COLOR_BOARD_DARK  (Color){  92,  60,  40, 255 }
+
+#define CAPTURE_OFFSET_X -0.40f
+#define CAPTURE_OFFSET_Z_START 0.35f
+#define CAPTURE_OFFSET_Z_STEP 0.06f
+
+enum PieceType {
+    PC_NONE = 0,
+    PC_PAWN = 1, PC_KNIGHT = 2, PC_BISHOP = 3, PC_ROOK = 4, PC_QUEEN = 5, PC_KING = 6,
+    PC_COUNT = 7
+};
+
+static float EaseOutCubic(float t) {
+    if (t >= 1.0f) return 1.0f;
+    float u = 1.0f - t;
+    return 1.0f - (u * u * u);
+}
+
+typedef struct {
+    enum PieceType type;
+    bool isWhite;
+    Vector3 startPos;
+    Vector3 endPos;
+    float duration;
+    float elapsed;
+    bool isCapture;
+} PieceAnimation;
+
+typedef struct {
+    enum PieceType type;
+    bool isWhite;
+    Vector3 position;
+} CapturedPiece;
+
+typedef struct {
+    char board[8][9];
+    PieceAnimation animations[32];
+    int numAnimations;
+    CapturedPiece captured[32];
+    int numCaptured;
+    bool moveInProgress;
+} VisualBoardState;
 
 typedef struct {
     Model board;
     float squareSize;
-    Vector3 originSquareCenter; // centro de la casilla file=0,rank=0
-    Texture2D checkerTexture;   // generada en runtime, para unload al salir
+    Vector3 originSquareCenter;
+    Texture2D checkerTexture;
 } BoardVisual;
 
-// -------------------- shader de iluminacion (GLSL ES 100 / WebGL1) --------
-// El shader default de raylib no ilumina nada (solo tinte * textura), por
-// eso todo se ve "plano". Este shader agrega difusa (Lambert) + un toque de
-// specular para que las piezas se lean como solidos 3D y no como manchas.
 static const char *g_lightVS =
     "#version 100\n"
     "attribute vec3 vertexPosition;\n"
@@ -133,23 +133,35 @@ typedef struct {
 } OrbitCamera;
 
 typedef struct {
-    int currentPly;      // 0 .. g_game.numPlies-1
+    int currentPly;
     bool autoPlay;
     float autoPlayTimer;
-    float autoPlaySpeed; // segundos por jugada
+    float autoPlaySpeed;
 } GameState;
 
 static BoardVisual g_board;
 static OrbitCamera g_cam;
 static GameState g_state;
 static PgnGame g_game;
+static VisualBoardState g_visual;
+static Model g_pieceModels[PC_COUNT];
 
-// -------------------- utilidades de tablero --------------------
+static enum PieceType PieceTypeFromChar(char c) {
+    switch (toupper((unsigned char)c)) {
+        case 'P': return PC_PAWN;
+        case 'N': return PC_KNIGHT;
+        case 'B': return PC_BISHOP;
+        case 'R': return PC_ROOK;
+        case 'Q': return PC_QUEEN;
+        case 'K': return PC_KING;
+        default: return PC_NONE;
+    }
+}
 
-// Imprime, para cada material del modelo, si tiene textura real (id>0, con
-// ancho/alto) o si solo tiene un color plano (texture.id==0, w=0 h=0 -> no
-// hay ninguna imagen en el archivo, y por tanto nada que asignar). Esto sale
-// en la consola del navegador (F12) al arrancar.
+static bool IsWhitePieceChar(char c) {
+    return c >= 'A' && c <= 'Z';
+}
+
 static void LogModelTextures(const char* label, Model* model) {
     TraceLog(LOG_INFO, "=== %s: %d material(es) ===", label, model->materialCount);
     for (int i = 0; i < model->materialCount; i++) {
@@ -160,8 +172,6 @@ static void LogModelTextures(const char* label, Model* model) {
     }
 }
 
-// Carga el shader de iluminacion y fija la direccion de luz (no cambia).
-// viewPos se actualiza cada frame en UpdateDrawFrame porque la camara orbita.
 static void SetupLighting(void) {
     g_lightShader = LoadShaderFromMemory(g_lightVS, g_lightFS);
     g_locLightDir = GetShaderLocation(g_lightShader, "lightDir");
@@ -171,13 +181,9 @@ static void SetupLighting(void) {
     SetShaderValue(g_lightShader, g_locLightDir, &lightDir, SHADER_UNIFORM_VEC3);
 }
 
-// Genera (sin archivos externos) un checker 8x8 para el tablero. Asume que
-// el UV del tablero cubre 0..1 en toda la superficie; si tu chess_board.glb
-// tiene un material por casilla en vez de uno solo, esto no va a alinear
-// perfecto -- revisa cuantos materiales reporta LogModelTextures() y avisame.
 static Texture2D MakeBoardCheckerTexture(void) {
     const int texSize = 256;
-    const int cell = texSize / 8; // 8 casillas por lado
+    const int cell = texSize / 8;
     Image img = GenImageChecked(texSize, texSize, cell, cell, COLOR_BOARD_LIGHT, COLOR_BOARD_DARK);
     Texture2D tex = LoadTextureFromImage(img);
     UnloadImage(img);
@@ -185,7 +191,6 @@ static Texture2D MakeBoardCheckerTexture(void) {
 }
 
 static Vector3 SquareToWorld(int file, int rank) {
-    // file: 0=a .. 7=h   rank: 0=1 .. 7=8
     float x = g_board.originSquareCenter.x + file * g_board.squareSize;
     float z = g_board.originSquareCenter.z - rank * g_board.squareSize;
     return (Vector3){ x, g_board.originSquareCenter.y, z };
@@ -195,58 +200,23 @@ static void SetupBoardVisual(void) {
     g_board.board = LoadModel("assets/chess_board.glb");
     LogModelTextures("chess_board.glb", &g_board.board);
 
-    // Solo pisamos materiales que no traigan textura real (texture.id==0):
-    // si algun dia cargas un chess_board.glb con textura de madera de verdad,
-    // esto la respeta y no la tapa con el checker generado.
     g_board.checkerTexture = MakeBoardCheckerTexture();
     for (int i = 0; i < g_board.board.materialCount; i++) {
         Material *mat = &g_board.board.materials[i];
         if (mat->maps[MATERIAL_MAP_DIFFUSE].texture.id == 0) {
             mat->maps[MATERIAL_MAP_DIFFUSE].texture = g_board.checkerTexture;
-            mat->maps[MATERIAL_MAP_DIFFUSE].color = WHITE; // que no tinte el checker
+            mat->maps[MATERIAL_MAP_DIFFUSE].color = WHITE;
         }
         mat->shader = g_lightShader;
     }
 
     g_board.squareSize = BOARD_SQUARE_SIZE;
-
-    float half = BOARD_HALF_EXTENT - g_board.squareSize * 0.5f; // 0.21
+    float half = BOARD_HALF_EXTENT - g_board.squareSize * 0.5f;
     g_board.originSquareCenter = (Vector3){ -half, BOARD_TOP_Y, half };
 }
 
-// -------------------- piezas (modelos GLB reales) --------------------
-
-typedef enum { PC_NONE, PC_PAWN, PC_KNIGHT, PC_BISHOP, PC_ROOK, PC_QUEEN, PC_KING, PC_COUNT } PieceType;
-
-// Un solo modelo por tipo (ya no hay w_/b_): el color de bando se aplica
-// como tinte en DrawModel, no hay dos modelos ni dos materiales por pieza.
-static Model g_pieceModels[PC_COUNT];
-
-static PieceType PieceTypeFromChar(char c) {
-    switch (c) {
-        case 'p': case 'P': return PC_PAWN;
-        case 'n': case 'N': return PC_KNIGHT;
-        case 'b': case 'B': return PC_BISHOP;
-        case 'r': case 'R': return PC_ROOK;
-        case 'q': case 'Q': return PC_QUEEN;
-        case 'k': case 'K': return PC_KING;
-        default: return PC_NONE;
-    }
-}
-
-static bool IsWhitePieceChar(char c) {
-    return c >= 'A' && c <= 'Z';
-}
-
-// Los .glb de piezas ya vienen orientados Y-arriba y a escala real (base en
-// y=0, footprint ~0.03m, que cabe holgado en una casilla de 0.06m). Como
-// ahora es un solo modelo compartido por ambos bandos, el material queda
-// neutro (WHITE) y el color real (marfil/carbon) se aplica como tinte en
-// cada DrawModel segun de que bando sea la pieza -- si el material quedara
-// pisado con un color fijo aca, el tinte se multiplicaria sobre ese color y
-// blancas/negras saldrian mal.
 static void LoadPieceModels(void) {
-    const char* files[PC_COUNT] = {
+    const char *files[] = {
         NULL, "assets/pawn.glb", "assets/knight.glb", "assets/bishop.glb",
         "assets/rook.glb", "assets/queen.glb", "assets/king.glb",
     };
@@ -259,7 +229,7 @@ static void LoadPieceModels(void) {
         for (int i = 0; i < m->materialCount; i++) {
             Material *mat = &m->materials[i];
             if (mat->maps[MATERIAL_MAP_DIFFUSE].texture.id == 0) {
-                mat->maps[MATERIAL_MAP_DIFFUSE].color = WHITE; // neutro: el tinte hace el color real
+                mat->maps[MATERIAL_MAP_DIFFUSE].color = WHITE;
             }
             mat->shader = g_lightShader;
         }
@@ -272,35 +242,236 @@ static void UnloadPieceModels(void) {
     }
 }
 
-static void DrawPiece(PieceType type, Vector3 pos, bool isWhite) {
+static void DrawPiece(enum PieceType type, Vector3 pos, bool isWhite) {
     if (type == PC_NONE) return;
     Color tint = isWhite ? COLOR_PIECE_WHITE : COLOR_PIECE_BLACK;
     DrawModel(g_pieceModels[type], pos, 1.0f, tint);
 }
 
-static void DrawPosition(int ply) {
+static void InitVisualBoard(void) {
+    g_visual.numAnimations = 0;
+    g_visual.numCaptured = 0;
+    g_visual.moveInProgress = false;
+    memcpy(g_visual.board, g_game.plies[0].board, sizeof(g_visual.board));
+}
+
+static bool FindMovedPiece(const char prevBoard[8][9], const char newBoard[8][9],
+                           int *fromFile, int *fromRank, int *toFile, int *toRank) {
     for (int row = 0; row < 8; row++) {
-        const char* rowStr = g_game.plies[ply].board[row];
-        int rank = 7 - row; // fila 0 del string = rank8
         for (int col = 0; col < 8; col++) {
-            char c = rowStr[col];
-            if (c == '.') continue;
-            PieceType type = PieceTypeFromChar(c);
-            bool isWhite = IsWhitePieceChar(c);
-            Vector3 pos = SquareToWorld(col, rank);
-            DrawPiece(type, pos, isWhite);
+            char prevPiece = prevBoard[row][col];
+            char newPiece = newBoard[row][col];
+            if (prevPiece != '.' && newPiece == '.') {
+                *fromFile = col;
+                *fromRank = 7 - row;
+                for (int row2 = 0; row2 < 8; row2++) {
+                    for (int col2 = 0; col2 < 8; col2++) {
+                        if (newBoard[row2][col2] == prevPiece && prevBoard[row2][col2] == '.') {
+                            *toFile = col2;
+                            *toRank = 7 - row2;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            char prevPiece = prevBoard[row][col];
+            char newPiece = newBoard[row][col];
+            if (prevPiece != newPiece && prevPiece != '.' && newPiece != '.') {
+                *toFile = col;
+                *toRank = 7 - row;
+                for (int row2 = 0; row2 < 8; row2++) {
+                    for (int col2 = 0; col2 < 8; col2++) {
+                        if (prevBoard[row2][col2] == newPiece && newBoard[row2][col2] == '.') {
+                            *fromFile = col2;
+                            *fromRank = 7 - row2;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+static void RebuildCaptures(int upToPly) {
+    g_visual.numCaptured = 0;
+    for (int i = 1; i <= upToPly; i++) {
+        int fromFile, fromRank, toFile, toRank;
+        if (FindMovedPiece(g_game.plies[i-1].board, g_game.plies[i].board,
+                           &fromFile, &fromRank, &toFile, &toRank)) {
+            char captured = g_game.plies[i-1].board[7-toRank][toFile];
+            if (captured != '.') {
+                enum PieceType type = PieceTypeFromChar(captured);
+                bool isWhite = IsWhitePieceChar(captured);
+                if (g_visual.numCaptured < 32) {
+                    g_visual.captured[g_visual.numCaptured].type = type;
+                    g_visual.captured[g_visual.numCaptured].isWhite = isWhite;
+                    int idx = g_visual.numCaptured;
+                    g_visual.captured[g_visual.numCaptured].position = (Vector3){
+                        CAPTURE_OFFSET_X,
+                        BOARD_TOP_Y,
+                        CAPTURE_OFFSET_Z_START - idx * CAPTURE_OFFSET_Z_STEP
+                    };
+                    g_visual.numCaptured++;
+                }
+            }
         }
     }
 }
 
-// -------------------- camara orbital --------------------
+static void AnimateMoveForward(int fromPly, int toPly) {
+    if (toPly != fromPly + 1) {
+        memcpy(g_visual.board, g_game.plies[toPly].board, sizeof(g_visual.board));
+        RebuildCaptures(toPly);
+        g_visual.numAnimations = 0;
+        g_visual.moveInProgress = false;
+        return;
+    }
+
+    int fromFile, fromRank, toFile, toRank;
+    if (!FindMovedPiece(g_game.plies[fromPly].board, g_game.plies[toPly].board,
+                        &fromFile, &fromRank, &toFile, &toRank)) {
+        memcpy(g_visual.board, g_game.plies[toPly].board, sizeof(g_visual.board));
+        RebuildCaptures(toPly);
+        g_visual.numAnimations = 0;
+        g_visual.moveInProgress = false;
+        return;
+    }
+
+    char piece = g_game.plies[fromPly].board[7-fromRank][fromFile];
+    enum PieceType type = PieceTypeFromChar(piece);
+    bool isWhite = IsWhitePieceChar(piece);
+
+    g_visual.numAnimations = 0;
+
+    PieceAnimation *anim = &g_visual.animations[g_visual.numAnimations++];
+    anim->type = type;
+    anim->isWhite = isWhite;
+    anim->startPos = SquareToWorld(fromFile, fromRank);
+    anim->endPos = SquareToWorld(toFile, toRank);
+    anim->duration = PIECE_ANIMATION_DURATION;
+    anim->elapsed = 0.0f;
+    anim->isCapture = false;
+
+    char captured = g_game.plies[fromPly].board[7-toRank][toFile];
+    if (captured != '.') {
+        enum PieceType capturedType = PieceTypeFromChar(captured);
+        bool capturedIsWhite = IsWhitePieceChar(captured);
+        int idx = g_visual.numCaptured;
+        Vector3 captureEndPos = (Vector3){
+            CAPTURE_OFFSET_X,
+            BOARD_TOP_Y,
+            CAPTURE_OFFSET_Z_START - idx * CAPTURE_OFFSET_Z_STEP
+        };
+
+        PieceAnimation *captureAnim = &g_visual.animations[g_visual.numAnimations++];
+        captureAnim->type = capturedType;
+        captureAnim->isWhite = capturedIsWhite;
+        captureAnim->startPos = SquareToWorld(toFile, toRank);
+        captureAnim->endPos = captureEndPos;
+        captureAnim->duration = PIECE_ANIMATION_DURATION;
+        captureAnim->elapsed = 0.0f;
+        captureAnim->isCapture = true;
+    }
+
+    memcpy(g_visual.board, g_game.plies[toPly].board, sizeof(g_visual.board));
+    g_visual.moveInProgress = true;
+}
+
+static void AnimateMoveBackward(int fromPly, int toPly) {
+    memcpy(g_visual.board, g_game.plies[toPly].board, sizeof(g_visual.board));
+    RebuildCaptures(toPly);
+    g_visual.numAnimations = 0;
+    g_visual.moveInProgress = false;
+}
+
+static void UpdateAnimations(float dt) {
+    if (g_visual.numAnimations == 0) {
+        g_visual.moveInProgress = false;
+        return;
+    }
+
+    for (int i = 0; i < g_visual.numAnimations; i++) {
+        PieceAnimation *anim = &g_visual.animations[i];
+        anim->elapsed += dt;
+        if (anim->elapsed >= anim->duration && anim->isCapture) {
+            if (g_visual.numCaptured < 32) {
+                g_visual.captured[g_visual.numCaptured].type = anim->type;
+                g_visual.captured[g_visual.numCaptured].isWhite = anim->isWhite;
+                g_visual.captured[g_visual.numCaptured].position = anim->endPos;
+                g_visual.numCaptured++;
+            }
+        }
+    }
+
+    int writeIndex = 0;
+    for (int i = 0; i < g_visual.numAnimations; i++) {
+        PieceAnimation *anim = &g_visual.animations[i];
+        if (anim->elapsed < anim->duration) {
+            if (writeIndex != i) {
+                g_visual.animations[writeIndex] = *anim;
+            }
+            writeIndex++;
+        }
+    }
+    g_visual.numAnimations = writeIndex;
+
+    if (g_visual.numAnimations == 0) {
+        g_visual.moveInProgress = false;
+    }
+}
+
+static void DrawVisualBoard(void) {
+    for (int row = 0; row < 8; row++) {
+        const char* rowStr = g_visual.board[row];
+        int rank = 7 - row;
+        for (int col = 0; col < 8; col++) {
+            char c = rowStr[col];
+            if (c == '.') continue;
+
+            bool isAnimating = false;
+            Vector3 pos = SquareToWorld(col, rank);
+            for (int i = 0; i < g_visual.numAnimations; i++) {
+                PieceAnimation *anim = &g_visual.animations[i];
+                if (anim->isCapture) continue;
+                if (Vector3Equals(pos, anim->startPos) || Vector3Equals(pos, anim->endPos)) {
+                    isAnimating = true;
+                    break;
+                }
+            }
+            if (!isAnimating) {
+                enum PieceType type = PieceTypeFromChar(c);
+                bool isWhite = IsWhitePieceChar(c);
+                DrawPiece(type, pos, isWhite);
+            }
+        }
+    }
+
+    for (int i = 0; i < g_visual.numAnimations; i++) {
+        PieceAnimation *anim = &g_visual.animations[i];
+        float t = anim->elapsed / anim->duration;
+        if (t > 1.0f) t = 1.0f;
+        t = EaseOutCubic(t);
+        Vector3 currentPos = Vector3Lerp(anim->startPos, anim->endPos, t);
+        DrawPiece(anim->type, currentPos, anim->isWhite);
+    }
+
+    for (int i = 0; i < g_visual.numCaptured; i++) {
+        CapturedPiece *cp = &g_visual.captured[i];
+        DrawPiece(cp->type, cp->position, cp->isWhite);
+    }
+}
 
 static void SetupCamera(void) {
     g_cam.angleH = 25.0f;
     g_cam.angleV = 35.0f;
-    g_cam.distance = 0.9f; // tablero real mide ~0.48m de lado, la distancia debe ir a juego
+    g_cam.distance = 0.9f;
     g_cam.targetOffset = (Vector3){ 0, 0, 0 };
-
     g_cam.camera.up = (Vector3){ 0, 1, 0 };
     g_cam.camera.fovy = 45.0f;
     g_cam.camera.projection = CAMERA_PERSPECTIVE;
@@ -335,12 +506,17 @@ static void UpdateOrbitCamera(float dt) {
     g_cam.camera.position.z = g_cam.camera.target.z + g_cam.distance * cosf(radV) * cosf(radH);
 }
 
-// -------------------- navegacion de jugadas --------------------
-
 static void GoToPly(int ply) {
     if (ply < 0) ply = 0;
     if (ply > g_game.numPlies - 1) ply = g_game.numPlies - 1;
-    g_state.currentPly = ply;
+    if (!g_visual.moveInProgress && ply != g_state.currentPly) {
+        if (ply > g_state.currentPly) {
+            AnimateMoveForward(g_state.currentPly, ply);
+        } else {
+            AnimateMoveBackward(g_state.currentPly, ply);
+        }
+        g_state.currentPly = ply;
+    }
 }
 
 static void UpdateInput(float dt) {
@@ -349,6 +525,8 @@ static void UpdateInput(float dt) {
     if (IsKeyPressed(KEY_HOME)) GoToPly(0);
     if (IsKeyPressed(KEY_END)) GoToPly(g_game.numPlies - 1);
     if (IsKeyPressed(KEY_P)) g_state.autoPlay = !g_state.autoPlay;
+    if (IsKeyPressed(KEY_V)) VideoExportStart(GetScreenWidth(), GetScreenHeight());
+    if (IsKeyPressed(KEY_X)) VideoExportStop();
 
     if (g_state.autoPlay) {
         g_state.autoPlayTimer += dt;
@@ -359,8 +537,6 @@ static void UpdateInput(float dt) {
         }
     }
 }
-
-// -------------------- UI --------------------
 
 static void DrawUI(void) {
     DrawText(TextFormat("%s vs %s  (%s)", g_game.white, g_game.black, g_game.result), 10, 10, 20, DARKGRAY);
@@ -380,19 +556,28 @@ static void DrawUI(void) {
     DrawText("ESPACIO : siguiente   P: autoplay   HOME/END: inicio/fin", 10, 148, 14, DARKGRAY);
     DrawText("Q/E R/F W/S A/D : orbitar camara", 10, 166, 14, DARKGRAY);
 
+    if (g_visual.moveInProgress) {
+        DrawText("[ANIMATING...]", 10, 190, 14, (Color){ 255, 150, 0, 255 });
+    }
+
     if (g_state.autoPlay) {
         DrawText("AUTOPLAY", GetScreenWidth() - 130, 10, 18, (Color){ 200, 40, 40, 255 });
     }
 
+    if (VideoExportIsRecording()) {
+        DrawText(TextFormat("REC %d frames", VideoExportGetFrameCount()), 
+                 GetScreenWidth() - 180, GetScreenHeight() - 50, 18, (Color){ 255, 40, 40, 255 });
+    }
+    DrawText("V: rec start   X: rec stop", GetScreenWidth() - 230, GetScreenHeight() - 25, 12, DARKGRAY);
+
     DrawFPS(GetScreenWidth() - 90, GetScreenHeight() - 25);
 }
-
-// -------------------- loop principal --------------------
 
 static void UpdateDrawFrame(void) {
     float dt = GetFrameTime();
 
     UpdateInput(dt);
+    UpdateAnimations(dt);
     UpdateOrbitCamera(dt);
     SetShaderValue(g_lightShader, g_locViewPos, &g_cam.camera.position, SHADER_UNIFORM_VEC3);
 
@@ -401,11 +586,15 @@ static void UpdateDrawFrame(void) {
 
     BeginMode3D(g_cam.camera);
         DrawModel(g_board.board, Vector3Zero(), BOARD_MODEL_SCALE, WHITE);
-        DrawPosition(g_state.currentPly);
+        DrawVisualBoard();
     EndMode3D();
 
     DrawUI();
     EndDrawing();
+
+    if (VideoExportIsRecording()) {
+        VideoExportCaptureFrame();
+    }
 }
 
 int main(void) {
@@ -414,14 +603,16 @@ int main(void) {
 
     InitWindow(screenWidth, screenHeight, "Chess Viewer - WASM");
     SetTargetFPS(60);
+    VideoExportInit();
 
-    SetupLighting();     // debe ir antes: los modelos necesitan g_lightShader ya cargado
+    SetupLighting();
     if (!LoadPgnGame(GAME_PGN_FILE, &g_game)) {
         TraceLog(LOG_ERROR, "No se pudo cargar %s", GAME_PGN_FILE);
     }
     SetupBoardVisual();
     LoadPieceModels();
     SetupCamera();
+    InitVisualBoard();
 
     g_state.currentPly = 0;
     g_state.autoPlay = false;
@@ -441,6 +632,7 @@ int main(void) {
     UnloadTexture(g_board.checkerTexture);
     UnloadShader(g_lightShader);
     UnloadPgnGame(&g_game);
+    VideoExportCleanup();
     CloseWindow();
     return 0;
 }
