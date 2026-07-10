@@ -597,9 +597,15 @@ static void UpdateDrawFrame(void) {
     }
 }
 
+
 int main(void) {
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
+    #ifdef PLATFORM_WEB
+        int screenWidth = 1280;
+        int screenHeight = 720;
+    #else
+        const int screenWidth = 1280;
+        const int screenHeight = 720;
+    #endif
 
     InitWindow(screenWidth, screenHeight, "Chess Viewer - WASM");
     SetTargetFPS(60);

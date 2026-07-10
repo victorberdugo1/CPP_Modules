@@ -2,22 +2,73 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Chess Viewer - WASM</title>
     <style>
-        html, body { margin: 0; padding: 0; background: #1e1e22; height: 100%; overflow: hidden; }
-        #canvas { display: block; margin: 0 auto; outline: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #1e1e22;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none;
+            image-rendering: pixelated;
+        }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            z-index: 1000;
+            min-width: 300px;
+        }
+        #loading.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+    <div id="loading">
+        <p>Cargando Chess Viewer...</p>
+        <p style="font-size: 14px; margin-top: 10px; color: #aaa;">Cargando FFmpeg local...</p>
+    </div>
+
+    <!-- Configuración del módulo Emscripten -->
     <script type="text/javascript">
         var Module = {
             canvas: document.getElementById('canvas'),
-            print: (function () { return function (text) { console.log(text); }; })(),
-            printErr: function (text) { console.error(text); },
+            print: function(text) { console.log(text); },
+            printErr: function(text) { console.error(text); },
+            onRuntimeInitialized: function() {
+                document.getElementById('loading').classList.add('hidden');
+                console.log('[Emscripten] Runtime inicializado');
+            }
         };
     </script>
-    <script src="video_export.js"></script>
+
+    <!-- Script generado por Emscripten (WASM) -->
     {{{ SCRIPT }}}
+
+    <!-- VideoExportJS (carga FFmpeg y gestiona grabación) -->
+    <script defer src="video_export.js"></script>
+
 </body>
 </html>
