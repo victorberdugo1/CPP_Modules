@@ -600,11 +600,11 @@ static void UpdateDrawFrame(void) {
 
 int main(void) {
     #ifdef PLATFORM_WEB
-        int screenWidth = 1280;
-        int screenHeight = 720;
+        int screenWidth = 1920;
+        int screenHeight = 1080;
     #else
-        const int screenWidth = 1280;
-        const int screenHeight = 720;
+        const int screenWidth = 1920;
+        const int screenHeight = 1080;
     #endif
 
     InitWindow(screenWidth, screenHeight, "Chess Viewer - WASM");

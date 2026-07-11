@@ -17,6 +17,19 @@
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
+        
+        /* ========== CONTENEDOR QUE MANTIENE ASPECT RATIO ========== */
+        #canvas-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e1e22;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
         #canvas {
             display: block;
             width: 100%;
@@ -24,6 +37,8 @@
             outline: none;
             image-rendering: pixelated;
         }
+        /* ========== FIN CONTENEDOR ========== */
+        
         #loading {
             position: fixed;
             top: 50%;
@@ -41,27 +56,119 @@
         #loading.hidden {
             display: none;
         }
+        #loading .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <!-- ========== CONTENEDOR CON ASPECT RATIO ========== -->
+    <div id="canvas-container">
+        <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
+    <!-- ========== FIN CONTENEDOR ========== -->
 
     <div id="loading">
+        <div class="spinner"></div>
         <p>Cargando Chess Viewer...</p>
         <p style="font-size: 14px; margin-top: 10px; color: #aaa;">Cargando FFmpeg local...</p>
     </div>
 
     <!-- Configuración del módulo Emscripten -->
     <script type="text/javascript">
+        // ========== CONFIGURACIÓN DE ASPECT RATIO ==========
+        const TARGET_WIDTH = 1920;
+        const TARGET_HEIGHT = 1080;
+        const ASPECT_RATIO = TARGET_WIDTH / TARGET_HEIGHT; // 16:9
+        
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            const canvas = document.getElementById('canvas');
+            
+            // Obtener dimensiones de la ventana
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Calcular el tamaño máximo que cabe en la ventana manteniendo 16:9
+            let width = windowWidth;
+            let height = windowWidth / ASPECT_RATIO;
+            
+            if (height > windowHeight) {
+                height = windowHeight;
+                width = windowHeight * ASPECT_RATIO;
+            }
+            
+            // Redondear a números enteros
+            width = Math.floor(width);
+            height = Math.floor(height);
+            
+            // Aplicar tamaño al contenedor (centrado)
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            
+            // El canvas ocupa todo el contenedor
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            // La resolución interna SIEMPRE es HD (1920x1080)
+            canvas.width = TARGET_WIDTH;
+            canvas.height = TARGET_HEIGHT;
+            
+            console.log(`[Resize] Ventana: ${windowWidth}x${windowHeight}, Contenedor: ${width}x${height}, Canvas interno: ${TARGET_WIDTH}x${TARGET_HEIGHT}`);
+            
+            // Notificar a C++ el cambio de tamaño (opcional)
+            if (typeof Module._resize === 'function') {
+                Module._resize(TARGET_WIDTH, TARGET_HEIGHT);
+            }
+        }
+        // ========== FIN CONFIGURACIÓN ==========
+        
         var Module = {
             canvas: document.getElementById('canvas'),
-            print: function(text) { console.log(text); },
-            printErr: function(text) { console.error(text); },
+            print: function(text) { 
+                console.log('[WASM]', text); 
+            },
+            printErr: function(text) { 
+                console.error('[WASM Error]', text); 
+            },
             onRuntimeInitialized: function() {
                 document.getElementById('loading').classList.add('hidden');
                 console.log('[Emscripten] Runtime inicializado');
+                
+                // Aplicar resize inicial
+                resizeCanvas();
+                
+                // Exponer la función resize al ámbito global
+                window.resizeCanvas = resizeCanvas;
             }
         };
+        
+        // ========== EVENTOS DE RESIZE ==========
+        let resizeTimeout = null;
+        window.addEventListener('resize', function() {
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
+            }
+            resizeTimeout = setTimeout(function() {
+                resizeCanvas();
+                resizeTimeout = null;
+            }, 100);
+        });
+        
+        window.addEventListener('orientationchange', function() {
+            setTimeout(resizeCanvas, 300);
+        });
+        // ========== FIN EVENTOS ==========
     </script>
 
     <!-- Script generado por Emscripten (WASM) -->

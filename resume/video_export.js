@@ -14,7 +14,7 @@
     let g_ffmpegModule = null;
 
     // ========================================================================
-    // CARGA DEL CORE DE FFMPEG (ffmpeg-core.js)
+    // CARGA DEL CORE DE FFMPEG
     // ========================================================================
 
     function loadCoreScript() {
@@ -94,17 +94,38 @@
                 console.error('[VideoExport] captureStream no soportado:', err);
                 return;
             }
-            const mimeType = 'video/webm;codecs=vp8,opus';
+            
+            let mimeType = "";
+            const candidates = [
+                "video/webm;codecs=vp9",
+                "video/webm;codecs=vp8",
+                "video/webm",
+                ""
+            ];
+            
+            for (const c of candidates) {
+                if (c === "" || MediaRecorder.isTypeSupported(c)) {
+                    mimeType = c;
+                    break;
+                }
+            }
+            
             const options = {
-                mimeType: mimeType,
                 videoBitsPerSecond: 2500000
             };
+            
+            if (mimeType !== "")
+                options.mimeType = mimeType;
+            
             try {
                 g_mediaRecorder = new MediaRecorder(g_stream, options);
             } catch (err) {
                 console.error('[VideoExport] MediaRecorder error:', err);
                 return;
             }
+            
+            console.log('[VideoExport] MediaRecorder:', g_mediaRecorder.mimeType);
+            
             g_recordedChunks = [];
             g_isRecording = true;
             g_mediaRecorder.ondataavailable = (event) => {
@@ -125,23 +146,47 @@
 
         finishEncoder: async function(filename) {
             console.log('[VideoExport] finishEncoder()');
+            
             if (!g_isRecording) {
                 console.warn('[VideoExport] No hay grabación activa');
                 return;
             }
+            
             g_isRecording = false;
-            g_mediaRecorder.stop();
-            await new Promise(resolve => {
-                const checkDone = setInterval(() => {
-                    if (g_mediaRecorder.state === 'inactive') {
-                        clearInterval(checkDone);
-                        resolve();
-                    }
-                }, 50);
+            
+            await new Promise((resolve, reject) => {
+                g_mediaRecorder.onstop = () => {
+                    resolve();
+                };
+                
+                g_mediaRecorder.onerror = e => {
+                    reject(e.error || e);
+                };
+                
+                g_mediaRecorder.requestData();
+                
+                setTimeout(() => {
+                    try {
+                        g_mediaRecorder.stop();
+                    } catch(e) {}
+                }, 0);
             });
-            const blob = new Blob(g_recordedChunks, { type: 'video/webm' });
-            console.log(`[VideoExport] WebM grabado: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
 
+            const blob = new Blob(g_recordedChunks, {
+                type: g_mediaRecorder.mimeType || "video/webm"
+            });
+            
+            console.log("[VideoExport] Chunks:", g_recordedChunks.length);
+            console.log("[VideoExport] Blob:", blob.size);
+            
+            if (blob.size === 0) {
+                console.error("[VideoExport] Blob vacío");
+                this._cleanup();
+                return;
+            }
+            
+            console.log(`[VideoExport] WebM grabado: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+            
             if (g_ffmpegReady && g_ffmpegModule) {
                 await this._convertToMP4(blob, filename);
             } else {
@@ -149,6 +194,7 @@
                 const webmName = filename.replace('.mp4', '.webm');
                 this._downloadBlob(blob, webmName);
             }
+            
             this._cleanup();
         },
 
@@ -157,16 +203,19 @@
                 if (!g_ffmpegReady || !g_ffmpegModule) {
                     throw new Error('FFmpeg no listo');
                 }
-
+                
                 const Module = g_ffmpegModule;
-
+                
                 console.log('[VideoExport] Convirtiendo a MP4...');
                 const webmData = new Uint8Array(await webmBlob.arrayBuffer());
-
-                // Escribir el archivo de entrada en el sistema de archivos virtual
+                
+                console.log("[VideoExport] Input:", webmData.length);
+                
+                if (webmData.length === 0)
+                    throw new Error("input.webm vacío");
+                
                 Module.FS.writeFile('/input.webm', webmData);
-
-                // Argumentos para ffmpeg
+                
                 const args = [
                     '-i', '/input.webm',
                     '-c:v', 'libx264',
@@ -176,26 +225,23 @@
                     '-b:a', '128k',
                     '/output.mp4'
                 ];
-
-                // Ejecutar ffmpeg con los argumentos (pasarlos como múltiples parámetros)
+                
                 const ret = Module.exec(...args);
                 if (ret !== 0) {
                     throw new Error(`FFmpeg retornó código ${ret}`);
                 }
-
-                // Leer el archivo de salida
+                
                 const data = Module.FS.readFile('/output.mp4');
                 const mp4Blob = new Blob([data], { type: 'video/mp4' });
                 console.log(`[VideoExport] ✓ MP4 generado: ${(mp4Blob.size / 1024 / 1024).toFixed(2)} MB`);
-
+                
                 this._downloadBlob(mp4Blob, filename);
-
-                // Limpiar archivos temporales
+                
                 try {
                     Module.FS.unlink('/input.webm');
                     Module.FS.unlink('/output.mp4');
                 } catch (e) {}
-
+                
             } catch (err) {
                 console.error('[VideoExport] Error en conversión MP4:', err);
                 console.log('[VideoExport] Fallback a WebM');

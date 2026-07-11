@@ -1,15 +1,19 @@
-[Event "Let's Play!"]
+[Event "Live Chess"]
 [Site "Chess.com"]
-[Date "2021.05.23"]
+[Date "2026.07.11"]
 [Round "-"]
-[White "berdugoliat"]
-[Black "berrdugo"]
-[Result "1-0"]
-[WhiteElo "1077"]
-[BlackElo "923"]
-[TimeControl "1/1209600"]
-[EndDate "2021.06.06"]
-[Termination "Victoria de berdugoliat por tiempo"]
+[White "apvkumar"]
+[Black "maksyara13"]
+[Result "0-1"]
+[WhiteElo "1266"]
+[BlackElo "1301"]
+[TimeControl "600"]
+[EndTime "10:56:03 GMT+0000"]
+[Termination "Victoria de maksyara13 por abandono"]
 
-1. b4 e5 2. e4 Qh4 3. g3 Qg5 4. f4 Qe7 5. fxe5 Qxe5 6. Nf3 Qxe4+ 7. Qe2 Bxb4 8.
-Nc3 h5 9. Nxe4 Nh6 10. c3 d5 11. Neg5+ Kf8 12. cxb4 Bg4 13. Nd4 Nd7 14. h3 1-0
+1. e4 e5 2. c3 d6 3. d4 exd4 4. cxd4 c6 5. Nf3 g6 6. Bg5 f6 7. Bh4 Bg7 8. Nc3
+Ne7 9. Be2 O-O 10. Qb3+ d5 11. exd5 Nxd5 12. Nxd5 cxd5 13. O-O Nc6 14. Nd2 Na5
+15. Qb5 b6 16. Bf3 Bb7 17. b4 Bc6 18. Qd3 Nb7 19. Qb3 Qd7 20. a4 g5 21. Bg3 b5
+22. axb5 Bxb5 23. Bxd5+ Kh8 24. Ra5 Bxf1 25. Bxb7 Qxb7 26. Nxf1 Rac8 27. Bd6
+Rfe8 28. Bc5 a6 29. Qc4 f5 30. Rxa6 Re4 31. Rb6 Qd7 32. Rd6 Qxd6 33. Bxd6 Rxc4
+34. Bc5 Bxd4 0-1
